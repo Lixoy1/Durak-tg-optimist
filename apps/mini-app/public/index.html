@@ -344,8 +344,7 @@
           bottomNav.hidden = false;
           switchTab('gameView');
           renderTableState();
-          const history = snapshot.viewerRole === 'SPECTATOR' ? snapshot.spectatorChatHistory : snapshot.chatHistory;
-          if (Array.isArray(history)) renderHistory(history);
+          if (Array.isArray(snapshot.chatHistory)) renderHistory(snapshot.chatHistory);
         } else if (packet.event === 'CHAT_MESSAGE') {
           appendMessage(packet.payload);
           if (!chatOpen && packet.payload.senderId !== authenticatedUserId) {
@@ -557,7 +556,7 @@
       if (!isSpectator && state.phase === 'PLAYING' && state.defenderId === authenticatedUserId && !state.isDefenderTaking && state.table.length > 0) {
         take.textContent = 'Беру'; take.disabled = false; take.onclick = () => sendAction({ type: 'TAKE', expectedVersion: state.version });
       }
-      $('chatTitle').textContent = isSpectator ? '👁 Отдельный чат зрителей' : '💬 Чат за столом OPTIMIST';
+      $('chatTitle').textContent = '💬 Общий чат OPTIMIST';
       $('chatInput').disabled = false;
       $('sendChatBtn').disabled = false;
       $('chatInput').placeholder = isSpectator ? 'Обсудим игру на трибуне…' : 'Добавь в чат немного оптимизма…';
@@ -759,15 +758,13 @@
     $('chatButton').addEventListener('click', () => setChat(!chatOpen));
     $('closeChat').addEventListener('click', () => setChat(false));
     document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => {
-      const type = snapshot?.viewerRole === 'SPECTATOR' ? 'SEND_SPECTATOR_CHAT' : 'SEND_CHAT';
-      socket?.send(JSON.stringify({ type, text: chip.dataset.text || '' }));
+      socket?.send(JSON.stringify({ type: 'SEND_CHAT', text: chip.dataset.text || '' }));
     }));
     $('chatForm').addEventListener('submit', (event) => {
       event.preventDefault();
       const input = $('chatInput'), message = input.value.trim();
       if (!message) return;
-      const type = snapshot?.viewerRole === 'SPECTATOR' ? 'SEND_SPECTATOR_CHAT' : 'SEND_CHAT';
-      socket?.send(JSON.stringify({ type, text: message })); input.value = '';
+      socket?.send(JSON.stringify({ type: 'SEND_CHAT', text: message })); input.value = '';
     });
 
     (async () => {
