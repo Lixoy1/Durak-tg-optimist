@@ -144,7 +144,7 @@ test('authenticated room members can upload and play short voice messages withou
   sockets.push(owner.ws, guest.ws);
 
   const voiceNotice = waitForPacket(owner.ws, (packet) => packet.event === 'CHAT_MESSAGE' && packet.payload.voice?.id);
-  const audioBytes = Buffer.from('OPTIMIST DURAK voice fixture: audio bytes are stored outside the WebSocket transport.');
+  const audioBytes = Buffer.concat([Buffer.from('OPTIMIST DURAK voice fixture: audio bytes are stored outside the WebSocket transport.'), Buffer.alloc(320, 0x61)]);
   const upload = await fetch(baseUrl + '/api/rooms/' + roomId + '/voice', {
     method: 'POST',
     headers: {
