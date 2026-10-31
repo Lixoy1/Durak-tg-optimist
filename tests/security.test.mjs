@@ -42,6 +42,12 @@ test('group lobby rooms require an explicit join and transfer the host when the 
   assert.equal(manager.canJoinByInvite(roomId), false);
   await assert.rejects(manager.joinRoom(roomId, 'stranger', 'Stranger'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
   await manager.joinRoom(roomId, 'friend', 'Friend', true);
+  // The group deep link returns an existing participant to a private chat,
+  // where the bot sends a Web App button for this same room. Reopening the
+  // room must be idempotent and must not attempt to add a second player.
+  const reopened = await manager.joinRoom(roomId, 'friend', 'Friend');
+  assert.equal(reopened.state.players.length, 2);
+  assert.equal(reopened.state.players.filter((player) => player.id === 'friend').length, 1);
   const result = await manager.removeWaitingPlayer(roomId, 'creator');
   assert.equal(result.playerCount, 1);
   assert.equal(result.ownerId, 'friend');
