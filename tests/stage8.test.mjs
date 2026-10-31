@@ -38,7 +38,7 @@ test('PersistentStore survives restart and preserves stats and settings', () => 
     assert.deepEqual(second.ensurePlayer('u1', 'Вася'), {
       userId: 'u1', username: 'Вася', games: 1, wins: 1, losses: 0, draws: 0, rating: 0.3,
     });
-    assert.deepEqual(second.getSettings('u1'), { userId: 'u1', trumpPosition: 'left', soundEnabled: false });
+    assert.deepEqual(second.getSettings('u1'), { userId: 'u1', trumpPosition: 'left', soundEnabled: false, tableTheme: 'emerald' });
     second.close();
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -201,11 +201,11 @@ test('authenticated HTTP API creates public rooms and persists user settings', a
   assert.equal((await lobbyRes.json()).rooms[0].roomId, roomId);
 
   const settingsRes = await fetch(`${baseUrl}/api/settings`, {
-    method: 'POST', headers, body: JSON.stringify({ trumpPosition: 'left', soundEnabled: false }),
+    method: 'POST', headers, body: JSON.stringify({ trumpPosition: 'left', soundEnabled: false, tableTheme: 'ruby' }),
   });
   assert.equal(settingsRes.status, 200);
   assert.deepEqual((await settingsRes.json()).settings, {
-    userId: '777', trumpPosition: 'left', soundEnabled: false,
+    userId: '777', trumpPosition: 'left', soundEnabled: false, tableTheme: 'ruby',
   });
 
   const bootstrap = await fetch(`${baseUrl}/api/bootstrap`, { headers });
