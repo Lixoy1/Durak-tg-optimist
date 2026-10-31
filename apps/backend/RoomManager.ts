@@ -9,10 +9,27 @@ export interface ChatMessage {
   roomId: string;
   senderId: string;
   senderName: string;
-  senderType: 'PLAYER' | 'SYSTEM';
+  senderType: 'PLAYER' | 'SPECTATOR' | 'SYSTEM';
+  channel: 'PLAYERS' | 'SPECTATORS';
   text: string;
   timestamp: number;
 }
+
+export type RoomReaction = {
+  roomId: string;
+  senderId: string;
+  senderName: string;
+  reaction: '🔥' | '😎' | '😂' | '💀' | '👑' | '🤡' | '👏' | '🙈';
+  timestamp: number;
+};
+
+export type TableEffect = {
+  roomId: string;
+  senderId: string;
+  senderName: string;
+  effect: 'curse' | 'buff' | 'lightning' | 'phoenix';
+  timestamp: number;
+};
 
 export interface RoomListItem {
   roomId: string;
@@ -28,6 +45,7 @@ export interface RoomListItem {
 export interface RoomSnapshot {
   state: PublicGameState;
   chatHistory: ChatMessage[];
+  spectatorChatHistory: ChatMessage[];
   ownerId: string;
   viewerRole: 'PLAYER' | 'SPECTATOR';
   spectatorCount: number;
@@ -65,9 +83,13 @@ interface RoomRecord {
   aiTask: AiQueueTask | null;
   createdAt: number;
   chat: ChatMessage[];
+  spectatorChat: ChatMessage[];
   queue: Promise<void>;
   idempotency: Map<string, { fingerprint: string; resultVersion: number }>;
   lastChatAt: Map<string, number>;
+  lastSpectatorChatAt: Map<string, number>;
+  lastReactionAt: Map<string, number>;
+  lastEffectAt: Map<string, number>;
 }
 
 export class RoomError extends Error {
@@ -132,9 +154,13 @@ export class RoomManager {
       aiTask: null,
       createdAt: this.now(),
       chat: [],
+      spectatorChat: [],
       queue: Promise.resolve(),
       idempotency: new Map(),
       lastChatAt: new Map(),
+      lastSpectatorChatAt: new Map(),
+      lastReactionAt: new Map(),
+      lastEffectAt: new Map(),
     };
     this.rooms.set(roomId, room);
     this.appendChat(room, 'SYSTEM', '✨ Стол OPTIMIST открыт! Здесь ценят смелые ходы, яркие партии и хорошее настроение.', 'SYSTEM');
@@ -159,9 +185,13 @@ export class RoomManager {
       aiTask: null,
       createdAt: this.now(),
       chat: [],
+      spectatorChat: [],
       queue: Promise.resolve(),
       idempotency: new Map(),
       lastChatAt: new Map(),
+      lastSpectatorChatAt: new Map(),
+      lastReactionAt: new Map(),
+      lastEffectAt: new Map(),
     };
     this.rooms.set(roomId, room);
     this.appendChat(room, 'SYSTEM', '🤖 Север (ИИ) уже за столом! Карты на руках — покажи, на что способен! Удача любит смелых.', 'SYSTEM');
@@ -327,13 +357,56 @@ export class RoomManager {
       this.assertMember(room, playerId);
       const clean = typeof text === 'string' ? text.trim() : '';
       if (!clean) throw new RoomError('EMPTY_MESSAGE', 'Сообщение не должно быть пустым.');
-      if (clean.length > 200) throw new RoomError('MESSAGE_TOO_LONG', 'Сообщение не должно превышать 200 символов.');
+      if (clean.length > 200) throw new RoomError('MESSAGE_TOO_LONG', 'Сообщение должно быть не длиннее 200 символов.');
       const now = this.now();
       const last = room.lastChatAt.get(playerId) ?? 0;
       if (now - last < 800) throw new RoomError('RATE_LIMIT', 'Не торопись — даже у самого яркого хода есть свой момент. Подожди секунду!');
       room.lastChatAt.set(playerId, now);
       const player = room.engine.state.players.find((entry) => entry.id === playerId)!;
-      return this.appendChat(room, playerId, clean, 'PLAYER', player.username);
+      return this.appendChat(room, playerId, clean, 'PLAYER', player.username, 'PLAYERS');
+    });
+  }
+
+  public async sendSpectatorChat(roomId: string, spectatorId: string, text: string): Promise<ChatMessage> {
+    return this.withLock(roomId, (room) => {
+      this.assertSpectator(room, spectatorId);
+      const clean = typeof text === 'string' ? text.trim() : '';
+      if (!clean) throw new RoomError('EMPTY_MESSAGE', 'Сообщение не должно быть пустым.');
+      if (clean.length > 200) throw new RoomError('MESSAGE_TOO_LONG', 'Сообщение должно быть не длиннее 200 символов.');
+      const now = this.now();
+      const last = room.lastSpectatorChatAt.get(spectatorId) ?? 0;
+      if (now - last < 800) throw new RoomError('RATE_LIMIT', 'Секунду, зрительская трибуна ещё аплодирует предыдущему сообщению!');
+      room.lastSpectatorChatAt.set(spectatorId, now);
+      return this.appendChat(room, spectatorId, clean, 'SPECTATOR', 'Зритель', 'SPECTATORS');
+    });
+  }
+
+  public async sendReaction(roomId: string, senderId: string, reaction: RoomReaction['reaction']): Promise<RoomReaction> {
+    return this.withLock(roomId, (room) => {
+      this.assertCanView(room, senderId);
+      const allowed = ['🔥', '😎', '😂', '💀', '👑', '🤡', '👏', '🙈'];
+      if (!allowed.includes(reaction)) throw new RoomError('INVALID_REACTION', 'Такая реакция не входит в колоду эмоций.');
+      const now = this.now();
+      const last = room.lastReactionAt.get(senderId) ?? 0;
+      if (now - last < 650) throw new RoomError('RATE_LIMIT', 'Эмоции эмоциями, но не спамим 😎');
+      room.lastReactionAt.set(senderId, now);
+      const player = room.engine.state.players.find((entry) => entry.id === senderId);
+      return { roomId, senderId, senderName: player?.username ?? 'Зритель', reaction, timestamp: now };
+    });
+  }
+
+  public async sendTableEffect(roomId: string, senderId: string, effect: TableEffect['effect']): Promise<TableEffect> {
+    return this.withLock(roomId, (room) => {
+      this.assertCanView(room, senderId);
+      if (room.engine.state.phase !== 'PLAYING') throw new RoomError('GAME_NOT_STARTED', 'Сначала дождёмся начала партии — магия подождёт.');
+      const allowed = ['curse', 'buff', 'lightning', 'phoenix'];
+      if (!allowed.includes(effect)) throw new RoomError('INVALID_TABLE_EFFECT', 'Неизвестный косметический эффект.');
+      const now = this.now();
+      const last = room.lastEffectAt.get(senderId) ?? 0;
+      if (now - last < 4_000) throw new RoomError('RATE_LIMIT', 'Эффект ещё перезаряжается. Не трать магию впустую!');
+      room.lastEffectAt.set(senderId, now);
+      const player = room.engine.state.players.find((entry) => entry.id === senderId);
+      return { roomId, senderId, senderName: player?.username ?? 'Зритель', effect, timestamp: now };
     });
   }
 
@@ -466,13 +539,20 @@ export class RoomManager {
     if (!isPlayer && !room.spectators.has(viewerId)) throw new RoomError('NOT_A_MEMBER', 'У тебя нет доступа к этому столу.');
   }
 
+  private assertSpectator(room: RoomRecord, viewerId: string): void {
+    if (!room.spectators.has(viewerId) || room.engine.state.players.some((player) => player.id === viewerId)) {
+      throw new RoomError('SPECTATOR_ONLY', 'Отдельный чат открыт только для наблюдателей.');
+    }
+  }
+
   private snapshot(roomId: string, viewerId: string): RoomSnapshot {
     const room = this.getRecord(roomId);
     this.assertCanView(room, viewerId);
     const isPlayer = room.engine.state.players.some((player) => player.id === viewerId);
     return {
       state: room.engine.getPublicStateForPlayer(isPlayer ? viewerId : '__SPECTATOR__'),
-      chatHistory: room.chat.map((message) => ({ ...message })),
+      chatHistory: isPlayer ? room.chat.map((message) => ({ ...message })) : [],
+      spectatorChatHistory: isPlayer ? [] : room.spectatorChat.map((message) => ({ ...message })),
       ownerId: room.ownerId,
       viewerRole: isPlayer ? 'PLAYER' : 'SPECTATOR',
       spectatorCount: room.spectators.size,
@@ -480,18 +560,27 @@ export class RoomManager {
     };
   }
 
-  private appendChat(room: RoomRecord, senderId: string, text: string, senderType: ChatMessage['senderType'], senderName?: string): ChatMessage {
+  private appendChat(
+    room: RoomRecord,
+    senderId: string,
+    text: string,
+    senderType: ChatMessage['senderType'],
+    senderName?: string,
+    channel: ChatMessage['channel'] = 'PLAYERS',
+  ): ChatMessage {
     const message: ChatMessage = {
       id: randomBytes(8).toString('hex'),
       roomId: room.engine.state.roomId,
       senderId,
-      senderName: senderName ?? (senderType === 'SYSTEM' ? '✨ Стол OPTIMIST' : 'Игрок'),
+      senderName: senderName ?? (senderType === 'SYSTEM' ? '✨ Стол OPTIMIST' : senderType === 'SPECTATOR' ? 'Зритель' : 'Игрок'),
       senderType,
+      channel,
       text,
       timestamp: this.now(),
     };
-    room.chat.push(message);
-    if (room.chat.length > 50) room.chat.splice(0, room.chat.length - 50);
+    const target = channel === 'SPECTATORS' ? room.spectatorChat : room.chat;
+    target.push(message);
+    if (target.length > 50) target.splice(0, target.length - 50);
     return message;
   }
 }
