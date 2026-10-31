@@ -359,11 +359,11 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
 
     if (ctx.chat.type === 'private') {
       const keyboard = new InlineKeyboard()
-        .text('2 игрока', 'create_2').text('3 игрока', 'create_3').row()
-        .text('4 игрока', 'create_4').text('5 игроков', 'create_5').row()
-        .text('6 игроков', 'create_6');
+        .text('2 места', 'create_2').text('3 места', 'create_3').row()
+        .text('4 места', 'create_4').text('5 мест', 'create_5').row()
+        .text('6 мест', 'create_6');
       await ctx.reply(
-        '♠️ <b>OPTIMIST DURAK</b> ♦️\n\n36 авторских карт, фирменная атмосфера и место для красивых побед! Создай личный стол, позови друзей и проверь, кому сегодня улыбается удача.\n\nХочешь сыграть всей компанией прямо в группе? Добавь бота в чат и напиши /durak.\n\nСколько игроков соберём за столом?',
+        '♠️ <b>OPTIMIST DURAK</b> ♦️\n\n36 авторских карт. Золотая колода. Чёрное сукно. Здесь проигрыш — лишь повод вернуться за реваншем. 😎\n\n🎲 <b>Личный стол:</b> выбери вместимость от 2 до 6 мест. Бот откроет отдельную комнату, а ты пригласишь друзей.\n\n👥 <b>Игра в группе:</b> добавь бота в групповой чат и напиши <code>/durak</code> — соберём общий стол прямо здесь.\n\nСколько мест оставим за твоим личным столом?',
         { parse_mode: 'HTML', reply_markup: keyboard },
       );
       return;
