@@ -464,8 +464,9 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
   });
 
   bot.catch((error) => {
-    // Do not log bot tokens or raw initData. Telegram error messages may contain user data.
-    console.error('[telegram-bot] handler failed:', error.error?.message ?? 'unknown error');
-  });
-  return bot;
+  // Do not log bot tokens or raw initData. Telegram error messages may contain user data.
+  console.error('[telegram-bot] handler failed:', String(error));
+});
+
+return bot;
 }
