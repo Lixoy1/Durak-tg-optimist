@@ -78,6 +78,7 @@ interface RoomRecord {
   allowInviteJoin: boolean;
   isPublic: boolean;
   spectators: Set<string>;
+  spectatorNames: Map<string, string>;
   onGameOver?: GameOverHandler;
   gameOverNotified: boolean;
   aiTask: AiQueueTask | null;
@@ -150,6 +151,7 @@ export class RoomManager {
       allowInviteJoin: options.allowInviteJoin ?? true,
       isPublic: options.isPublic ?? false,
       spectators: new Set(),
+      spectatorNames: new Map(),
       gameOverNotified: false,
       aiTask: null,
       createdAt: this.now(),
@@ -181,6 +183,7 @@ export class RoomManager {
       allowInviteJoin: false,
       isPublic: false,
       spectators: new Set(),
+      spectatorNames: new Map(),
       gameOverNotified: false,
       aiTask: null,
       createdAt: this.now(),
@@ -237,20 +240,26 @@ export class RoomManager {
     return this.store.saveSettings(userId, patch);
   }
 
-  public async spectateRoom(roomId: string, viewerId: string): Promise<RoomSnapshot> {
+  public async spectateRoom(roomId: string, viewerId: string, username = 'Зритель'): Promise<RoomSnapshot> {
     return this.withLock(roomId, (room) => {
       if (!viewerId.trim()) throw new RoomError('INVALID_PLAYER', 'Некорректные данные наблюдателя.');
       const isPlayer = room.engine.state.players.some((player) => player.id === viewerId);
       if (!isPlayer && !room.isPublic) {
         throw new RoomError('NOT_A_MEMBER', 'Наблюдение доступно только за открытыми публичными столами.');
       }
-      if (!isPlayer) room.spectators.add(viewerId);
+      if (!isPlayer) {
+        room.spectators.add(viewerId);
+        room.spectatorNames.set(viewerId, username.slice(0, 64));
+      }
       return this.snapshot(roomId, viewerId);
     });
   }
 
   public async removeSpectator(roomId: string, viewerId: string): Promise<boolean> {
-    const removed = await this.withLock(roomId, (room) => room.spectators.delete(viewerId));
+    const removed = await this.withLock(roomId, (room) => {
+      room.spectatorNames.delete(viewerId);
+      return room.spectators.delete(viewerId);
+    });
     if (removed) this.onRoomChanged?.(roomId);
     return removed;
   }
@@ -265,6 +274,7 @@ export class RoomManager {
       room.engine.state.players.splice(index, 1);
       room.engine.state.version++;
       room.spectators.delete(playerId);
+      room.spectatorNames.delete(playerId);
       if (room.ownerId === playerId) room.ownerId = room.engine.state.players[0]?.id ?? '';
       return { ownerId: room.ownerId || null, playerCount: room.engine.state.players.length };
     });
@@ -377,7 +387,7 @@ export class RoomManager {
       const last = room.lastSpectatorChatAt.get(spectatorId) ?? 0;
       if (now - last < 800) throw new RoomError('RATE_LIMIT', 'Секунду, зрительская трибуна ещё аплодирует предыдущему сообщению!');
       room.lastSpectatorChatAt.set(spectatorId, now);
-      return this.appendChat(room, spectatorId, clean, 'SPECTATOR', 'Зритель', 'SPECTATORS');
+      return this.appendChat(room, spectatorId, clean, 'SPECTATOR', room.spectatorNames.get(spectatorId) ?? 'Зритель', 'SPECTATORS');
     });
   }
 
@@ -391,7 +401,7 @@ export class RoomManager {
       if (now - last < 650) throw new RoomError('RATE_LIMIT', 'Эмоции эмоциями, но не спамим 😎');
       room.lastReactionAt.set(senderId, now);
       const player = room.engine.state.players.find((entry) => entry.id === senderId);
-      return { roomId, senderId, senderName: player?.username ?? 'Зритель', reaction, timestamp: now };
+      return { roomId, senderId, senderName: player?.username ?? room.spectatorNames.get(senderId) ?? 'Зритель', reaction, timestamp: now };
     });
   }
 
@@ -406,7 +416,7 @@ export class RoomManager {
       if (now - last < 4_000) throw new RoomError('RATE_LIMIT', 'Эффект ещё перезаряжается. Не трать магию впустую!');
       room.lastEffectAt.set(senderId, now);
       const player = room.engine.state.players.find((entry) => entry.id === senderId);
-      return { roomId, senderId, senderName: player?.username ?? 'Зритель', effect, timestamp: now };
+      return { roomId, senderId, senderName: player?.username ?? room.spectatorNames.get(senderId) ?? 'Зритель', effect, timestamp: now };
     });
   }
 
