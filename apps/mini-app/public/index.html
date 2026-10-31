@@ -68,11 +68,13 @@
 
     <section id="ratingView" class="view" hidden>
       <h3 class="section-title">🏆 Рейтинг оптимистов</h3><div id="podiumBox" class="podium"></div><div id="leaderList" style="margin-top:12px"></div>
+      <h3 class="section-title" style="margin-top:22px">🤡 Зал славы Хранителей Колоды</h3><div id="durakLeaderList"></div>
     </section>
 
     <section id="profileView" class="view" hidden>
       <div class="card-box" style="text-align:center"><div style="font-size:34px">😎</div><div id="profName" style="font-size:20px;font-weight:900">ОПТИМИСТ</div><div id="profId" style="font-size:11px;color:var(--muted)">Твоя игровая история</div></div>
-      <div class="card-box"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--muted);font-weight:800">ТВОЙ УРОВЕНЬ ОПТИМИЗМА</span><span id="profRating" style="font-size:21px;font-weight:900;color:var(--gold)">0,10 / 5</span></div><div class="stats-grid"><div><div id="stGames" class="stat-val">0</div><div class="stat-lbl">Игр</div></div><div><div id="stWins" class="stat-val">0</div><div class="stat-lbl">Победы</div></div><div><div id="stLosses" class="stat-val">0</div><div class="stat-lbl">Поражения</div></div><div><div id="stDraws" class="stat-val">0</div><div class="stat-lbl">Ничьи</div></div></div></div>
+      <div class="card-box"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--muted);font-weight:800">ТВОЙ УРОВЕНЬ ОПТИМИЗМА</span><span id="profRating" style="font-size:21px;font-weight:900;color:var(--gold)">0,10 / 5</span></div><div class="stats-grid"><div><div id="stGames" class="stat-val">0</div><div class="stat-lbl">Игр</div></div><div><div id="stWins" class="stat-val">0</div><div class="stat-lbl">Победы</div></div><div><div id="stLosses" class="stat-val">0</div><div class="stat-lbl">Раз дурак</div></div><div><div id="stDraws" class="stat-val">0</div><div class="stat-lbl">Ничьи</div></div></div></div>
+      <div class="card-box"><h3 style="margin:0 0 10px;color:var(--gold);font-size:14px">🎖️ Достижения OPTIMIST</h3><div id="achievementsList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div><div style="font-size:10px;color:var(--muted);margin-top:9px">Достижения хранятся в памяти бесплатного сервера и могут сброситься после его перезапуска.</div></div>
     </section>
 
     <section id="settingsView" class="view" hidden>
@@ -324,6 +326,8 @@
         }
         renderProfileData(data.profile);
         renderLeaderboardData(data.leaderboard || []);
+        renderDurakLeaderboard(data.durakLeaderboard || []);
+        renderAchievementsData(data.achievements || []);
         renderLobbyList(data.lobbyRooms || []);
       } catch (error) {
         if (error instanceof Error && error.message) showToast(error.message);
@@ -697,6 +701,61 @@
         const name = document.createElement('span'); name.textContent = `#${index + 4} ${leader.username}`;
         const wins = document.createElement('span'); wins.textContent = `${leader.wins} побед`; wins.style.color = 'var(--gold)'; wins.style.fontWeight = '850';
         row.append(name, wins); list.append(row);
+      });
+    }
+
+    function renderDurakLeaderboard(players) {
+      const list = $('durakLeaderList');
+      if (!list) return;
+      list.replaceChildren();
+      if (!players.length) {
+        const empty = document.createElement('div');
+        empty.className = 'card-box';
+        empty.textContent = 'Пока никто не стал Хранителем Колоды. Береги эту традицию! 😎';
+        list.append(empty);
+        return;
+      }
+      players.slice(0, 10).forEach((player, index) => {
+        const row = document.createElement('div');
+        row.className = 'leader-row';
+        const name = document.createElement('span');
+        name.textContent = `${index + 1}. ${player.username}`;
+        const losses = document.createElement('span');
+        losses.textContent = `${player.losses} раз`;
+        losses.style.color = 'var(--ruby)';
+        losses.style.fontWeight = '900';
+        row.append(name, losses);
+        list.append(row);
+      });
+    }
+
+    function renderAchievementsData(achievements) {
+      const list = $('achievementsList');
+      if (!list) return;
+      list.replaceChildren();
+      achievements.forEach((achievement) => {
+        const item = document.createElement('div');
+        item.className = 'card-box';
+        item.style.margin = '0';
+        item.style.padding = '9px 7px';
+        item.style.textAlign = 'center';
+        item.style.opacity = achievement.unlocked ? '1' : '.42';
+        item.style.borderColor = achievement.unlocked ? 'var(--gold)' : '#ffffff20';
+        const icon = document.createElement('div');
+        icon.style.fontSize = '22px';
+        icon.textContent = achievement.unlocked ? achievement.icon : '🔒';
+        const title = document.createElement('div');
+        title.style.fontSize = '11px';
+        title.style.fontWeight = '900';
+        title.style.marginTop = '4px';
+        title.textContent = achievement.title;
+        const description = document.createElement('div');
+        description.style.fontSize = '9px';
+        description.style.color = 'var(--muted)';
+        description.style.marginTop = '3px';
+        description.textContent = achievement.unlocked ? achievement.description : achievement.description;
+        item.append(icon, title, description);
+        list.append(item);
       });
     }
 
