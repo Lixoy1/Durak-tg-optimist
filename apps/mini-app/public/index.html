@@ -82,6 +82,13 @@
         <div class="setting-row"><span>🔊 Звуки</span><div class="segmented"><button id="soundOnBtn" class="seg-btn active" type="button">Вкл</button><button id="soundOffBtn" class="seg-btn" type="button">Выкл</button></div></div>
         <div style="font-size:11px;color:var(--muted);padding:0 2px 6px">Эффекты раздачи, атаки, отбоя, взятия карт, смены хода и финала партии.</div>
       </div>
+      <div class="card-box">
+        <h4 style="margin:0 0 8px;color:var(--gold);font-size:13px">🎲 Правила новых столов</h4>
+        <div class="setting-row"><span>Режим</span><div class="segmented"><button id="rulePodkidnoyBtn" class="seg-btn active" type="button">Подкидной</button><button id="rulePerevodnoyBtn" class="seg-btn" type="button">Переводной</button></div></div>
+        <div class="setting-row"><span>Первый заход</span><div class="segmented"><button id="ruleLimit5Btn" class="seg-btn" type="button">5 карт</button><button id="ruleLimit6Btn" class="seg-btn active" type="button">6 карт</button></div></div>
+        <div class="setting-row"><span>После взятия ходит</span><div class="segmented"><button id="ruleAfterAttackerBtn" class="seg-btn active" type="button">Атакующий</button><button id="ruleAfterDefenderBtn" class="seg-btn" type="button">Защищавшийся</button></div></div>
+        <div style="font-size:10px;color:var(--muted);padding-top:6px">Эти правила применятся к столам, которые ты создашь через лобби Mini App. Уже начатые партии не меняются.</div>
+      </div>
     </section>
   </div>
 
@@ -117,6 +124,7 @@
     let socket = null, authenticatedUserId = '', snapshot = null, chatOpen = false, unread = 0;
     let selectedCardId = null, selectedAttackIndex = 0, reconnectDelay = 1000, shouldReconnect = true;
     let trumpPosition = 'right', soundEnabled = true, tableTheme = 'emerald', activeTabId = 'lobbyView', currentMode = urlMode === 'spectate' ? 'spectate' : 'play';
+    let roomRuleMode = 'PODKIDNOY', firstBoutMaxCards = 6, afterTakeRule = 'ATTACKER';
     const decodedSet = new Set();
     const dealAnimationIds = new Set();
     const tableAnimationClasses = new Map();
@@ -453,10 +461,27 @@
       return defenseCard.suit === trumpSuit && attackCard.suit !== trumpSuit;
     }
 
+    function canTransferCard(card, state) {
+      if ((state.config?.mode ?? 'PODKIDNOY') !== 'PEREVODNOY' || state.defenderId !== authenticatedUserId || state.isDefenderTaking || !state.table.length) return false;
+      const ranksOnTable = new Set();
+      for (const pair of state.table) {
+        ranksOnTable.add(pair.attack.rank);
+        if (pair.defense) ranksOnTable.add(pair.defense.rank);
+      }
+      if (!ranksOnTable.has(card.rank)) return false;
+      const defenderIndex = state.players.findIndex((player) => player.id === state.defenderId);
+      for (let offset = 1; offset <= state.players.length; offset++) {
+        const next = state.players[(defenderIndex + offset) % state.players.length];
+        if (next?.status !== 'ACTIVE') continue;
+        return next.cardCount >= state.table.length + 1;
+      }
+      return false;
+    }
+
     function isCardPlayable(card, state) {
       if (!snapshot || snapshot.viewerRole === 'SPECTATOR' || state.phase !== 'PLAYING') return false;
       if (state.defenderId === authenticatedUserId && !state.isDefenderTaking) {
-        return state.table.some((pair) => pair.defense === null && canCardBeat(pair.attack, card, state.trumpSuit));
+        return state.table.some((pair) => pair.defense === null && canCardBeat(pair.attack, card, state.trumpSuit)) || canTransferCard(card, state);
       }
       if (state.activeThrowerId === authenticatedUserId) {
         if (state.defenderId === authenticatedUserId) return false;
@@ -522,7 +547,7 @@
       else if (state.defenderId === authenticatedUserId) {
         if (state.isDefenderTaking) $('status').textContent = 'Карты идут к тебе — соперники, не расслабляемся! 😎';
         else if (uncoveredIndex >= 0 && !canBeatUncovered) { $('status').textContent = 'Не нашёлся ответ? Забирай карты и готовь реванш!'; statusBox.classList.add('alert-take'); }
-        else $('status').textContent = 'Твой момент — отбивай красиво! 💪';
+        else $('status').textContent = state.config?.mode === 'PEREVODNOY' ? 'Отбивайся или переводи атаку! 🔁' : 'Твой момент — отбивай красиво! 💪';
       } else if (state.activeThrowerId === authenticatedUserId) $('status').textContent = state.table.length ? 'Есть чем удивить? Подкидывай или жми «Пас»!' : 'Твой ход — начинай красиво! 🚀';
       else $('status').textContent = `Сейчас ходит ${state.players.find((player) => player.id === state.activeThrowerId)?.username || 'соперник'} — следи за красивым ходом!`;
 
@@ -677,9 +702,16 @@
       if (state.phase !== 'PLAYING') return;
       if (state.defenderId === authenticatedUserId && !state.isDefenderTaking) {
         const selected = state.table[selectedAttackIndex];
-        const target = selected && selected.defense === null ? selectedAttackIndex : state.table.findIndex((pair) => pair.defense === null);
-        if (target < 0) { showToast('Все карты уже под контролем — выбери другой ход.'); return; }
-        sendAction({ type: 'DEFEND', attackIndex: target, cardId: card.id, expectedVersion: state.version });
+        const selectedCanBeat = selected && selected.defense === null && canCardBeat(selected.attack, card, state.trumpSuit);
+        const target = selectedCanBeat ? selectedAttackIndex : state.table.findIndex((pair) => pair.defense === null && canCardBeat(pair.attack, card, state.trumpSuit));
+        if (target >= 0) {
+          sendAction({ type: 'DEFEND', attackIndex: target, cardId: card.id, expectedVersion: state.version });
+        } else if (canTransferCard(card, state)) {
+          sendAction({ type: 'TRANSFER', cardId: card.id, expectedVersion: state.version });
+        } else {
+          showToast('Эта карта не подходит. Нужна старшая масть, козырь или карта для перевода.');
+          return;
+        }
       } else if (state.activeThrowerId === authenticatedUserId) {
         sendAction({ type: 'ATTACK', cardId: card.id, expectedVersion: state.version });
       } else showToast('Сейчас ход соперника — твой момент скоро придёт!');
@@ -721,6 +753,12 @@
       $('themeEmeraldBtn').classList.toggle('active', tableTheme === 'emerald');
       $('themeRubyBtn').classList.toggle('active', tableTheme === 'ruby');
       $('themeNightBtn').classList.toggle('active', tableTheme === 'night');
+      $('rulePodkidnoyBtn').classList.toggle('active', roomRuleMode === 'PODKIDNOY');
+      $('rulePerevodnoyBtn').classList.toggle('active', roomRuleMode === 'PEREVODNOY');
+      $('ruleLimit5Btn').classList.toggle('active', firstBoutMaxCards === 5);
+      $('ruleLimit6Btn').classList.toggle('active', firstBoutMaxCards === 6);
+      $('ruleAfterAttackerBtn').classList.toggle('active', afterTakeRule === 'ATTACKER');
+      $('ruleAfterDefenderBtn').classList.toggle('active', afterTakeRule === 'DEFENDER');
     }
     function setTableTheme(theme) {
       tableTheme = theme;
@@ -739,7 +777,7 @@
     document.querySelectorAll('.nav-tab').forEach((button) => button.addEventListener('click', () => switchTab(button.dataset.tab)));
     $('refreshLobbyBtn').addEventListener('click', () => void loadBootstrapData());
     $('createPublicRoomBtn').addEventListener('click', async () => {
-      try { const data = await apiFetch('/api/rooms', { method: 'POST', body: JSON.stringify({ maxPlayers: 2, isPublic: true }) }); connectToRoom(data.roomId, 'play'); }
+      try { const data = await apiFetch('/api/rooms', { method: 'POST', body: JSON.stringify({ maxPlayers: 2, isPublic: true, gameConfig: { mode: roomRuleMode, firstBoutMaxCards, afterTake: afterTakeRule } }) }); connectToRoom(data.roomId, 'play'); }
       catch (error) { showToast(error instanceof Error ? error.message : 'Стол пока не открылся. Попробуем ещё раз!'); }
     });
     $('createAiRoomBtn').addEventListener('click', async () => {
@@ -751,6 +789,12 @@
     $('themeEmeraldBtn').addEventListener('click', () => setTableTheme('emerald'));
     $('themeRubyBtn').addEventListener('click', () => setTableTheme('ruby'));
     $('themeNightBtn').addEventListener('click', () => setTableTheme('night'));
+    $('rulePodkidnoyBtn').addEventListener('click', () => { roomRuleMode = 'PODKIDNOY'; syncSettingsButtons(); showToast('Подкидной дурак. Классика проверена временем! 🃏'); });
+    $('rulePerevodnoyBtn').addEventListener('click', () => { roomRuleMode = 'PEREVODNOY'; syncSettingsButtons(); showToast('Переводной дурак. Не хочешь брать? Переводи! 🔁'); });
+    $('ruleLimit5Btn').addEventListener('click', () => { firstBoutMaxCards = 5; syncSettingsButtons(); });
+    $('ruleLimit6Btn').addEventListener('click', () => { firstBoutMaxCards = 6; syncSettingsButtons(); });
+    $('ruleAfterAttackerBtn').addEventListener('click', () => { afterTakeRule = 'ATTACKER'; syncSettingsButtons(); });
+    $('ruleAfterDefenderBtn').addEventListener('click', () => { afterTakeRule = 'DEFENDER'; syncSettingsButtons(); });
 
     $('soundOnBtn').addEventListener('click', () => {
       soundEnabled = true;
