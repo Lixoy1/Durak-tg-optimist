@@ -220,7 +220,7 @@
           }, reconnectDelay);
         }
       });
-      activeSocket.addEventListener('error', () => showToast('Ошибка соединения со столом.'));
+      activeSocket.addEventListener('error', () => showToast('Связь со столом прервалась. Уже пытаемся вернуться!'));
     }
 
     function suitGlyph(suit) { return ({ clubs: '♣', spades: '♠', diamonds: '♦', hearts: '♥' })[suit] || '?'; }
@@ -363,7 +363,7 @@
 
       handTrack.replaceChildren();
       const sortedHand = sortHandCards(hand, state.trumpSuit);
-      $('handLabel').textContent = isSpectator ? 'Ты смотришь игру со стороны' : `Твои карты · ${sortedHand.length}`;
+      $('handLabel').textContent = isSpectator ? 'Ты смотришь игру со стороны' : `Твой расклад · ${sortedHand.length} карт`;
       const overlap = sortedHand.length <= 6 ? -8 : sortedHand.length <= 12 ? -16 : -19;
       handTrack.style.setProperty('--fan-overlap', `${overlap}px`);
       sortedHand.forEach((card, index) => {
@@ -403,7 +403,7 @@
         const sub = document.createElement('div'); sub.className = 'lobby-sub'; sub.textContent = `${room.playerCount}/${room.maxPlayers} игроков · 👁 ${room.spectatorCount} · 36 карт`;
         left.append(title, sub);
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'lobby-btn' + (room.canSeat ? '' : ' watch');
-        btn.textContent = room.canSeat ? 'Сесть' : 'Наблюдать';
+        btn.textContent = room.canSeat ? 'За стол!' : 'Смотреть';
         btn.addEventListener('click', () => connectToRoom(room.roomId, room.canSeat ? 'play' : 'spectate'));
         card.append(left, btn); box.append(card);
       });
