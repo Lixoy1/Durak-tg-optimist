@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DurakEngine, GameRuleError } from '../packages/game-engine/DurakEngine.ts';
+import { DurakEngine, GameRuleError, formatCardName } from '../packages/game-engine/DurakEngine.ts';
 import { computeBotAction, runStressSimulation } from '../packages/game-engine/simulator.ts';
 
 function makeEngine(n = 4, config = { maxPlayers: n, firstBoutMaxCards: 6 }) {
@@ -9,6 +9,14 @@ function makeEngine(n = 4, config = { maxPlayers: n, firstBoutMaxCards: 6 }) {
   engine.startGame();
   return engine;
 }
+
+test('formats cards in clear Russian names for player-facing rule messages', () => {
+  assert.equal(formatCardName({ rank: 10, suit: 'hearts' }), '10 червей');
+  assert.equal(formatCardName({ rank: 13, suit: 'hearts' }), 'король червей');
+  assert.equal(formatCardName({ rank: 13, suit: 'hearts' }, 'accusative'), 'короля червей');
+  assert.equal(formatCardName({ rank: 9, suit: 'diamonds' }), '9 бубен');
+  assert.equal(formatCardName({ rank: 11, suit: 'spades' }), 'валет пик');
+});
 
 test('deals exactly 36 unique cards for 2–6 players', () => {
   for (let n = 2; n <= 6; n++) {
