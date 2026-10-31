@@ -59,6 +59,7 @@
       <div class="card-box">
         <div class="setting-row"><span>🃏 Козырь в руке</span><div class="segmented"><button id="trumpLeftBtn" class="seg-btn" type="button">Слева</button><button id="trumpRightBtn" class="seg-btn active" type="button">Справа</button></div></div>
         <div class="setting-row"><span>🔊 Звуки</span><div class="segmented"><button id="soundOnBtn" class="seg-btn active" type="button">Вкл</button><button id="soundOffBtn" class="seg-btn" type="button">Выкл</button></div></div>
+        <div style="font-size:11px;color:var(--muted);padding:0 2px 6px">Эффекты раздачи, атаки, отбоя, взятия карт, смены хода и финала партии.</div>
       </div>
     </section>
   </div>
@@ -225,7 +226,10 @@
         playSound('clear');
       } else if (next.deckCount < previous.deckCount) {
         playSound('draw');
-      } else if (next.activeThrowerId === authenticatedUserId && previous.activeThrowerId !== authenticatedUserId) {
+      } else if (
+        (next.activeThrowerId === authenticatedUserId && previous.activeThrowerId !== authenticatedUserId) ||
+        (next.defenderId === authenticatedUserId && previous.defenderId !== authenticatedUserId)
+      ) {
         playSound('turn');
       }
     }
