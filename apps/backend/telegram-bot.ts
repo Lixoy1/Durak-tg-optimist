@@ -216,7 +216,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
         `👥 <b>Команда за столом:</b> ${players}`,
         `🃏 Карты на руках! Первый ход за <b>${escapeHtml(firstPlayer)}</b> — покажи красивую игру!`,
         '',
-        'Открывай игровой стол по кнопке ниже — у каждого игрока будут только его карты. Удачи и красивых ходов!',
+        'ВАЖНО: каждый участник этой партии должен нажать кнопку ниже прямо в этом групповом чате. Не отправляйте /start в личном чате с ботом — эта команда создаёт отдельный личный стол. У каждого участника будут только его карты. Удачи и красивых ходов!',
       ].join('\n'), {
         parse_mode: 'HTML',
         reply_markup: new InlineKeyboard().url('🃏 Открыть OPTIMIST DURAK', url),
@@ -360,11 +360,11 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       const inviteUrl = `https://t.me/${usernameFromApi}?start=room_${roomId}`;
       const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent('Залетай за стол OPTIMIST DURAK! 36 карт и море азарта — погнали! 🃏')}`;
       const keyboard = new InlineKeyboard()
-        .webApp('🃏 Открыть игровой стол', miniAppUrl(webAppUrl, roomId))
+        .webApp('🃏 Открыть личный стол', miniAppUrl(webAppUrl, roomId))
         .row()
         .url('📨 Пригласить друзей', shareUrl);
       await ctx.editMessageText(
-        `Стол OPTIMIST DURAK готов! 🚀\n\nКомната: ${roomId}\nМест за столом: ${playerCount}\n\nЗови друзей по приглашению и открывай игру. Когда за столом будет минимум 2 игрока, капитан сможет раздать карты и начать партию!`,
+        `Личный стол OPTIMIST DURAK готов! 🚀\n\nКомната: ${roomId}\nМест за столом: ${playerCount}\n\nЭто отдельная личная комната — она не подключает тебя к партии из группового чата. Пригласи друга по ссылке, чтобы он тоже вошёл за этот стол. Когда вас будет минимум двое, капитан сможет начать игру.\n\nДля продолжения уже начатой партии вернись в групповой чат и нажми кнопку «Открыть OPTIMIST DURAK» под сообщением о старте.`,
         { reply_markup: keyboard },
       );
     });
