@@ -91,6 +91,7 @@ export interface PublicGameState {
   roomId: string;
   version: number;
   phase: GamePhase;
+  config: GameConfig;
   deckCount: number;
   discardCount: number;
   trumpCard: Card | null;
