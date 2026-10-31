@@ -276,11 +276,9 @@ export function createOptimistBackend(options: BackendOptions) {
   rooms.setRoomChangeListener(broadcastRoomSync);
 
   function broadcastChat(roomId: string, message: ChatMessage): void {
-    const visibleRole = message.channel === 'SPECTATORS' ? 'SPECTATOR' : 'PLAYER';
+    // One shared room chat for players and spectators alike.
     for (const ws of roomSockets.get(roomId) ?? []) {
-      if (sessions.get(ws)?.viewerRole === visibleRole) {
-        sendJson(ws, { event: 'CHAT_MESSAGE', payload: message });
-      }
+      if (sessions.has(ws)) sendJson(ws, { event: 'CHAT_MESSAGE', payload: message });
     }
   }
 
@@ -336,14 +334,12 @@ export function createOptimistBackend(options: BackendOptions) {
         broadcastRoomSync(roomId);
         return;
       case 'SEND_CHAT': {
-        if (session.viewerRole !== 'PLAYER') throw new RoomError('PLAYER_CHAT_ONLY', 'Зрители общаются в отдельном чате трибуны.');
         const message = await rooms.sendChat(roomId, playerId, msg.text);
         broadcastChat(roomId, message);
         return;
       }
       case 'SEND_SPECTATOR_CHAT': {
-        if (session.viewerRole !== 'SPECTATOR') throw new RoomError('SPECTATOR_ONLY', 'Этот чат открыт только для наблюдателей.');
-        const message = await rooms.sendSpectatorChat(roomId, playerId, msg.text);
+        const message = await rooms.sendChat(roomId, playerId, msg.text);
         broadcastChat(roomId, message);
         return;
       }
