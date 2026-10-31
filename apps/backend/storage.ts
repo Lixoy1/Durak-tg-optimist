@@ -141,6 +141,17 @@ export class PersistentStore {
       .map((item) => ({ ...item }));
   }
 
+  /** The tongue-in-cheek all-time ranking of players with the most losses (Durak finishes). */
+  public getDurakLeaderboard(limit = 15): PlayerStats[] {
+    this.assertOpen();
+    const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.min(100, Math.trunc(limit))) : 15;
+    return [...this.stats.values()]
+      .filter((entry) => entry.losses > 0)
+      .sort((a, b) => b.losses - a.losses || b.games - a.games || a.username.localeCompare(b.username))
+      .slice(0, safeLimit)
+      .map((item) => ({ ...item }));
+  }
+
   public getSettings(userId: string): UserSettings {
     this.assertOpen();
     const existing = this.settings.get(userId);
