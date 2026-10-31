@@ -119,31 +119,31 @@ test('private group rooms can grant spectator-only access without becoming publi
   assert.equal(manager.getSnapshot(roomId, 'owner').spectatorCount, 1);
 });
 
-test('spectator chat is isolated from player chat in both directions', async () => {
+test('players and spectators share one chat history and can all write to it', async () => {
   let now = 10_000;
   const manager = new RoomManager(() => now);
   const { roomId } = manager.createRoom('owner', 'Owner', 2, { isPublic: true });
   await manager.joinRoom(roomId, 'guest', 'Guest');
-  await manager.spectateRoom(roomId, 'observer');
+  await manager.spectateRoom(roomId, 'observer', 'Observer');
 
-  const spectatorMessage = await manager.sendSpectatorChat(roomId, 'observer', 'Комментаторы на месте!');
-  assert.equal(spectatorMessage.channel, 'SPECTATORS');
+  const spectatorMessage = await manager.sendChat(roomId, 'observer', 'Комментаторы на месте!');
+  assert.equal(spectatorMessage.channel, 'ROOM');
   assert.equal(spectatorMessage.senderType, 'SPECTATOR');
 
   const observerView = manager.getSnapshot(roomId, 'observer');
   const playerView = manager.getSnapshot(roomId, 'owner');
-  assert.equal(observerView.chatHistory.length, 0);
-  assert.equal(observerView.spectatorChatHistory.length, 1);
-  assert.equal(observerView.spectatorChatHistory[0].text, 'Комментаторы на месте!');
-  assert.equal(playerView.spectatorChatHistory.length, 0);
+  assert.equal(observerView.chatHistory.at(-1).text, 'Комментаторы на месте!');
+  assert.equal(playerView.chatHistory.at(-1).text, 'Комментаторы на месте!');
+  assert.deepEqual(observerView.chatHistory, playerView.chatHistory);
 
   now += 801;
   await manager.sendChat(roomId, 'owner', 'Игроки на связи!');
-  assert.equal(manager.getSnapshot(roomId, 'owner').chatHistory.length, 3);
   assert.equal(manager.getSnapshot(roomId, 'owner').chatHistory.at(-1).text, 'Игроки на связи!');
-  assert.equal(manager.getSnapshot(roomId, 'observer').spectatorChatHistory.length, 1);
-  await assert.rejects(manager.sendChat(roomId, 'observer', 'Не игрок'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
-  await assert.rejects(manager.sendSpectatorChat(roomId, 'owner', 'Не зритель'), (e) => e instanceof RoomError && e.code === 'SPECTATOR_ONLY');
+  assert.equal(manager.getSnapshot(roomId, 'observer').chatHistory.at(-1).text, 'Игроки на связи!');
+  const viaLegacyMethod = await manager.sendSpectatorChat(roomId, 'observer', 'С трибуны слышно!');
+  assert.equal(viaLegacyMethod.channel, 'ROOM');
+  assert.equal(manager.getSnapshot(roomId, 'owner').chatHistory.at(-1).text, 'С трибуны слышно!');
+  await assert.rejects(manager.sendChat(roomId, 'outsider', 'Не участник'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
 });
 
 test('spectators can react and trigger cosmetic effects without mutating game state', async () => {
