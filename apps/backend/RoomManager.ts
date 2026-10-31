@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { DurakEngine } from '../../packages/game-engine/DurakEngine.ts';
 import { computeBotAction } from '../../packages/game-engine/simulator.ts';
-import type { GameAction, GameActionInput, GameState, PublicGameState } from '../../packages/shared-types/index.ts';
+import type { GameAction, GameActionInput, GameConfig, GameState, PublicGameState } from '../../packages/shared-types/index.ts';
 import { PersistentStore, type PlayerStats, type UserSettings } from './storage.ts';
 
 export interface ChatMessage {
@@ -202,11 +202,9 @@ export class RoomManager {
       aiTask: null,
       createdAt: this.now(),
       chat: [],
-      spectatorChat: [],
       queue: Promise.resolve(),
       idempotency: new Map(),
       lastChatAt: new Map(),
-      lastSpectatorChatAt: new Map(),
       lastReactionAt: new Map(),
       lastEffectAt: new Map(),
     };
@@ -612,7 +610,7 @@ export class RoomManager {
     text: string,
     senderType: ChatMessage['senderType'],
     senderName?: string,
-    channel: ChatMessage['channel'] = 'PLAYERS',
+    channel: ChatMessage['channel'] = 'ROOM',
   ): ChatMessage {
     const message: ChatMessage = {
       id: randomBytes(8).toString('hex'),
