@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
-import { RoomManager, RoomError, type ChatMessage } from './RoomManager.ts';
+import { RoomManager, RoomError, type ChatMessage, type RoomReaction, type TableEffect } from './RoomManager.ts';
 import { PersistentStore } from './storage.ts';
 import { verifyTelegramInitData, AuthError } from './auth.ts';
 import { parseClientMessage, ProtocolError, type ClientMessage } from './protocol.ts';
@@ -276,7 +276,16 @@ export function createOptimistBackend(options: BackendOptions) {
   rooms.setRoomChangeListener(broadcastRoomSync);
 
   function broadcastChat(roomId: string, message: ChatMessage): void {
-    for (const ws of roomSockets.get(roomId) ?? []) sendJson(ws, { event: 'CHAT_MESSAGE', payload: message });
+    const visibleRole = message.channel === 'SPECTATORS' ? 'SPECTATOR' : 'PLAYER';
+    for (const ws of roomSockets.get(roomId) ?? []) {
+      if (sessions.get(ws)?.viewerRole === visibleRole) {
+        sendJson(ws, { event: 'CHAT_MESSAGE', payload: message });
+      }
+    }
+  }
+
+  function broadcastRoomMoment(roomId: string, event: 'TABLE_REACTION' | 'TABLE_EFFECT', payload: RoomReaction | TableEffect): void {
+    for (const ws of roomSockets.get(roomId) ?? []) sendJson(ws, { event, payload });
   }
 
   async function handleAuthenticatedMessage(ws: WebSocket, session: Session, msg: ClientMessage): Promise<void> {
@@ -328,8 +337,25 @@ export function createOptimistBackend(options: BackendOptions) {
         broadcastRoomSync(roomId);
         return;
       case 'SEND_CHAT': {
+        if (session.viewerRole !== 'PLAYER') throw new RoomError('PLAYER_CHAT_ONLY', 'Зрители общаются в отдельном чате трибуны.');
         const message = await rooms.sendChat(roomId, playerId, msg.text);
         broadcastChat(roomId, message);
+        return;
+      }
+      case 'SEND_SPECTATOR_CHAT': {
+        if (session.viewerRole !== 'SPECTATOR') throw new RoomError('SPECTATOR_ONLY', 'Этот чат открыт только для наблюдателей.');
+        const message = await rooms.sendSpectatorChat(roomId, playerId, msg.text);
+        broadcastChat(roomId, message);
+        return;
+      }
+      case 'SEND_REACTION': {
+        const reaction = await rooms.sendReaction(roomId, playerId, msg.reaction);
+        broadcastRoomMoment(roomId, 'TABLE_REACTION', reaction);
+        return;
+      }
+      case 'SEND_TABLE_EFFECT': {
+        const effect = await rooms.sendTableEffect(roomId, playerId, msg.effect);
+        broadcastRoomMoment(roomId, 'TABLE_EFFECT', effect);
         return;
       }
       default: {
