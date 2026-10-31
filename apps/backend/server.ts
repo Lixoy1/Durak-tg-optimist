@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -29,12 +30,26 @@ interface Session {
   authTimer: ReturnType<typeof setTimeout>;
   frameTimes: number[];
   strikes: number;
+  voiceToken?: string;
 }
 
 const MAX_FRAMES_PER_WINDOW = 60;
 const FRAME_WINDOW_MS = 10_000;
 const AUTH_TIMEOUT_MS = 10_000;
 const HEARTBEAT_MS = 30_000;
+const VOICE_MAX_BYTES = 512 * 1024;
+const VOICE_MAX_TOTAL_BYTES = 16 * 1024 * 1024;
+const VOICE_MAX_FILES = 80;
+const VOICE_MAX_DURATION_SECONDS = 30;
+const VOICE_TTL_MS = 6 * 60 * 60 * 1000;
+const VOICE_MIME_TYPES = new Set(['audio/webm', 'audio/ogg', 'audio/mp4']);
+
+interface StoredVoiceFile {
+  roomId: string;
+  mimeType: string;
+  buffer: Buffer;
+  createdAt: number;
+}
 
 function writeJson(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, {
@@ -64,6 +79,24 @@ async function readJsonBody(req: IncomingMessage, maxBytes = 4_096): Promise<Rec
   return parsed as Record<string, unknown>;
 }
 
+async function readBinaryBody(req: IncomingMessage, maxBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  let tooLarge = false;
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buffer.length;
+    if (total > maxBytes) {
+      tooLarge = true;
+      chunks.length = 0;
+      continue;
+    }
+    if (!tooLarge) chunks.push(buffer);
+  }
+  if (tooLarge) throw new ProtocolError('PAYLOAD_TOO_LARGE', 'Голосовое сообщение слишком большое. Запиши его короче.');
+  return Buffer.concat(chunks, total);
+}
+
 function rawDataToBuffer(data: RawData): Buffer {
   if (Buffer.isBuffer(data)) return data;
   if (Array.isArray(data)) return Buffer.concat(data);
@@ -87,7 +120,11 @@ function sendJson(ws: WebSocket, payload: unknown): void {
 function errorStatus(error: unknown): number {
   if (error instanceof AuthError) return 401;
   if (error instanceof RoomError) return 403;
-  if (error instanceof ProtocolError) return error.code === 'PAYLOAD_TOO_LARGE' ? 413 : 400;
+  if (error instanceof ProtocolError) {
+    if (error.code === 'PAYLOAD_TOO_LARGE') return 413;
+    if (error.code === 'UNSUPPORTED_MEDIA_TYPE') return 415;
+    return 400;
+  }
   return 500;
 }
 
@@ -103,6 +140,22 @@ export function createOptimistBackend(options: BackendOptions) {
   const rooms = new RoomManager(Date.now, store, options.aiDelayMs ?? 350);
   const sessions = new Map<WebSocket, Session>();
   const roomSockets = new Map<string, Set<WebSocket>>();
+  const voiceSessions = new Map<string, { userId: string; roomId: string }>();
+  const voiceFiles = new Map<string, StoredVoiceFile>();
+  let voiceStoredBytes = 0;
+
+  function removeVoiceFile(id: string): void {
+    const file = voiceFiles.get(id);
+    if (!file) return;
+    voiceStoredBytes = Math.max(0, voiceStoredBytes - file.buffer.length);
+    voiceFiles.delete(id);
+  }
+
+  function pruneVoiceFiles(now = Date.now()): void {
+    for (const [id, file] of voiceFiles) {
+      if (now - file.createdAt > VOICE_TTL_MS) removeVoiceFile(id);
+    }
+  }
   const allowedOrigins = new Set((options.allowedOrigins ?? []).map((origin) => origin.trim()).filter(Boolean));
   if (process.env.NODE_ENV === 'production' && allowedOrigins.size === 0) {
     store.close();
@@ -223,6 +276,97 @@ export function createOptimistBackend(options: BackendOptions) {
     }
   }
 
+  async function handleVoiceApi(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
+    const match = /^\/api\/rooms\/((?:[a-f0-9]{16}|ai_[a-f0-9]{6}))\/voice(?:\/([a-f0-9]{32}))?$/.exec(url.pathname);
+    if (!match) return false;
+
+    try {
+      if (req.method !== 'POST' && req.method !== 'GET') {
+        res.writeHead(405, { allow: 'GET, POST' });
+        res.end();
+        return true;
+      }
+
+      const roomId = match[1]!;
+      const voiceId = match[2];
+      const rawToken = req.headers['x-room-session'];
+      if (typeof rawToken !== 'string') {
+        throw new AuthError('VOICE_SESSION_REQUIRED', 'Сначала подключись к игровому столу.');
+      }
+      const voiceSession = voiceSessions.get(rawToken);
+      if (!voiceSession || voiceSession.roomId !== roomId) {
+        throw new AuthError('INVALID_VOICE_SESSION', 'Сессия голосового чата устарела. Переподключись к столу.');
+      }
+      // Re-check room membership on every upload and playback request.
+      rooms.getSnapshot(roomId, voiceSession.userId);
+
+      if (req.method === 'POST') {
+        if (voiceId) {
+          writeJson(res, 404, { error: 'Not found' });
+          return true;
+        }
+        const mimeType = (req.headers['content-type'] ?? '').split(';', 1)[0]!.trim().toLowerCase();
+        if (!VOICE_MIME_TYPES.has(mimeType)) {
+          throw new ProtocolError('UNSUPPORTED_MEDIA_TYPE', 'Поддерживаются записи WebM, OGG и MP4.');
+        }
+        const durationSeconds = Number(req.headers['x-voice-duration']);
+        if (!Number.isInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > VOICE_MAX_DURATION_SECONDS) {
+          throw new ProtocolError('INVALID_VOICE_DURATION', 'Длительность записи должна быть от 1 до 30 секунд.');
+        }
+        const contentLength = Number(req.headers['content-length'] ?? 0);
+        if (contentLength > VOICE_MAX_BYTES) {
+          req.resume();
+          throw new ProtocolError('PAYLOAD_TOO_LARGE', 'Голосовое сообщение слишком большое. Запиши его короче.');
+        }
+        const buffer = await readBinaryBody(req, VOICE_MAX_BYTES);
+        if (buffer.length < 256) throw new ProtocolError('EMPTY_VOICE_MESSAGE', 'Запись слишком короткая или пустая.');
+
+        pruneVoiceFiles();
+        while (voiceFiles.size >= VOICE_MAX_FILES || voiceStoredBytes + buffer.length > VOICE_MAX_TOTAL_BYTES) {
+          const oldestId = voiceFiles.keys().next().value;
+          if (typeof oldestId !== 'string') break;
+          removeVoiceFile(oldestId);
+        }
+        if (voiceStoredBytes + buffer.length > VOICE_MAX_TOTAL_BYTES) {
+          throw new ProtocolError('VOICE_STORAGE_FULL', 'Временное хранилище голосовых заполнено. Попробуй позже.');
+        }
+
+        const id = randomBytes(16).toString('hex');
+        const message = await rooms.sendVoice(roomId, voiceSession.userId, {
+          id, durationSeconds, mimeType, sizeBytes: buffer.length,
+        });
+        voiceFiles.set(id, { roomId, mimeType, buffer, createdAt: Date.now() });
+        voiceStoredBytes += buffer.length;
+        broadcastChat(roomId, message);
+        writeJson(res, 201, { voiceId: id, message });
+        return true;
+      }
+
+      if (!voiceId) {
+        writeJson(res, 404, { error: 'Not found' });
+        return true;
+      }
+      pruneVoiceFiles();
+      const file = voiceFiles.get(voiceId);
+      if (!file || file.roomId !== roomId) {
+        writeJson(res, 404, { error: 'Голосовое сообщение уже недоступно.' });
+        return true;
+      }
+      res.writeHead(200, {
+        'content-type': file.mimeType,
+        'content-length': file.buffer.length,
+        'content-disposition': 'inline',
+        'cache-control': 'private, no-store',
+        'x-content-type-options': 'nosniff',
+      });
+      res.end(file.buffer);
+      return true;
+    } catch (error) {
+      writeJson(res, errorStatus(error), errorPayload(error));
+      return true;
+    }
+  }
+
   async function handleHttp(req: IncomingMessage, res: ServerResponse): Promise<void> {
     let url: URL;
     try { url = new URL(req.url ?? '/', 'http://localhost'); }
@@ -232,6 +376,7 @@ export function createOptimistBackend(options: BackendOptions) {
       writeJson(res, 200, { status: 'ok', service: 'optimist-durak', timestamp: new Date().toISOString() });
       return;
     }
+    if (await handleVoiceApi(req, res, url)) return;
     if (await handleApi(req, res, url)) return;
     if (req.method !== 'GET' || (url.pathname !== '/' && !url.pathname.startsWith('/assets/'))) {
       writeJson(res, 404, { error: 'Not found' });
@@ -342,9 +487,12 @@ export function createOptimistBackend(options: BackendOptions) {
       session.userId = user.id;
       session.username = user.username;
       session.roomId = msg.roomId;
+      const voiceSessionToken = randomBytes(32).toString('hex');
+      session.voiceToken = voiceSessionToken;
+      voiceSessions.set(voiceSessionToken, { userId: user.id, roomId: msg.roomId });
       clearTimeout(session.authTimer);
       roomSet(msg.roomId).add(ws);
-      sendJson(ws, { event: 'AUTH_OK', payload: { userId: user.id, username: user.username, roomId: msg.roomId } });
+      sendJson(ws, { event: 'AUTH_OK', payload: { userId: user.id, username: user.username, roomId: msg.roomId, voiceSessionToken } });
       broadcastRoomSync(msg.roomId);
       return;
     }
@@ -436,6 +584,7 @@ export function createOptimistBackend(options: BackendOptions) {
     ws.on('close', () => {
       clearTimeout(session.authTimer);
       sessions.delete(ws);
+      if (session.voiceToken) voiceSessions.delete(session.voiceToken);
       if (session.roomId) {
         const roomId = session.roomId;
         const set = roomSockets.get(roomId);
@@ -462,6 +611,8 @@ export function createOptimistBackend(options: BackendOptions) {
   heartbeat.unref();
   const roomCleanup = setInterval(() => { rooms.pruneIdleRooms(); }, 10 * 60 * 1000);
   roomCleanup.unref();
+  const voiceCleanup = setInterval(() => { pruneVoiceFiles(); }, 5 * 60 * 1000);
+  voiceCleanup.unref();
 
   const bot = createTelegramBot({
     token: options.botToken,
@@ -511,6 +662,10 @@ export function createOptimistBackend(options: BackendOptions) {
   async function close(): Promise<void> {
     clearInterval(heartbeat);
     clearInterval(roomCleanup);
+    clearInterval(voiceCleanup);
+    voiceSessions.clear();
+    voiceFiles.clear();
+    voiceStoredBytes = 0;
     rooms.clearAllTimers();
     try { bot.stop(); } catch { /* Bot polling was not started (e.g. test shutdown). */ }
     for (const ws of sessions.keys()) ws.close(1001, 'Server shutting down');
