@@ -57,6 +57,8 @@ export interface CreateRoomOptions {
   allowInviteJoin?: boolean;
   /** Only rooms marked public appear in the lobby list or allow spectators. */
   isPublic?: boolean;
+  /** Allows explicitly invited observers in private/group rooms without listing them publicly. */
+  allowSpectators?: boolean;
 }
 
 export type GameOverHandler = (state: GameState) => void | Promise<void>;
@@ -77,6 +79,7 @@ interface RoomRecord {
   ownerId: string;
   allowInviteJoin: boolean;
   isPublic: boolean;
+  allowSpectators: boolean;
   spectators: Set<string>;
   spectatorNames: Map<string, string>;
   onGameOver?: GameOverHandler;
@@ -150,6 +153,7 @@ export class RoomManager {
       ownerId,
       allowInviteJoin: options.allowInviteJoin ?? true,
       isPublic: options.isPublic ?? false,
+      allowSpectators: options.allowSpectators ?? options.isPublic ?? false,
       spectators: new Set(),
       spectatorNames: new Map(),
       gameOverNotified: false,
@@ -182,6 +186,7 @@ export class RoomManager {
       ownerId,
       allowInviteJoin: false,
       isPublic: false,
+      allowSpectators: false,
       spectators: new Set(),
       spectatorNames: new Map(),
       gameOverNotified: false,
@@ -244,7 +249,7 @@ export class RoomManager {
     return this.withLock(roomId, (room) => {
       if (!viewerId.trim()) throw new RoomError('INVALID_PLAYER', 'Некорректные данные наблюдателя.');
       const isPlayer = room.engine.state.players.some((player) => player.id === viewerId);
-      if (!isPlayer && !room.isPublic) {
+      if (!isPlayer && !room.isPublic && !room.allowSpectators) {
         throw new RoomError('NOT_A_MEMBER', 'Наблюдение доступно только за открытыми публичными столами.');
       }
       if (!isPlayer) {
