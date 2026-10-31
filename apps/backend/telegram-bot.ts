@@ -69,10 +69,11 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     return botUsername;
   }
 
-  async function directMiniAppUrl(roomId: string): Promise<string> {
+  async function groupRoomEntryUrl(roomId: string): Promise<string> {
     const username = await getBotUsername();
-    const startParam = `room_${roomId}`;
-    return `https://t.me/${username}/${encodeURIComponent(appShortName)}?startapp=${encodeURIComponent(startParam)}`;
+    // Use the standard bot deep link for group launches. It opens /start room_<id>,
+    // then the bot returns a native Web App button bound to this exact room.
+    return `https://t.me/${username}?start=${encodeURIComponent(`room_${roomId}`)}`;
   }
 
   function getLobbyEngine(lobby: GroupLobby) {
@@ -234,17 +235,17 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     try {
       const players = startedEngine.state.players.map((player) => `<b>${escapeHtml(player.username)}</b>`).join(', ');
       const firstPlayer = startedEngine.state.players[startedEngine.state.attackerIndex]?.username ?? 'Игрок';
-      const url = await directMiniAppUrl(lobby.roomId);
+      const url = await groupRoomEntryUrl(lobby.roomId);
       await bot.api.editMessageText(lobby.chatId, lobby.messageId, [
         '<b>🔥 OPTIMIST — ПОЕХАЛИ! ПАРТИЯ НАЧАЛАСЬ!</b>',
         '',
         `👥 <b>Команда за столом:</b> ${players}`,
         `🃏 Карты на руках! Первый ход за <b>${escapeHtml(firstPlayer)}</b> — покажи красивую игру!`,
         '',
-        'ВАЖНО: каждый участник этой партии должен нажать кнопку ниже прямо в этом групповом чате. Не отправляйте /start в личном чате с ботом — эта команда создаёт отдельный личный стол. У каждого участника будут только его карты. Удачи и красивых ходов!',
+        'Каждый участник нажимает кнопку ниже. Откроется личный чат OPTIMIST, где бот пришлёт кнопку входа ИМЕННО В ЭТУ общую партию. Нажмите её — и вы окажетесь за одним столом, каждый со своими картами. Не создавайте новую комнату через обычный /start!',
       ].join('\n'), {
         parse_mode: 'HTML',
-        reply_markup: new InlineKeyboard().url('🃏 Открыть OPTIMIST DURAK', url),
+        reply_markup: new InlineKeyboard().url('🃏 Войти в общую партию', url),
       });
     } catch (error) {
       console.error('[telegram-bot] game started but group link could not be published:', error instanceof Error ? error.message : 'unknown');
@@ -339,13 +340,18 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
         return;
       }
       try {
+        const isGroupRoom = !rooms.canJoinByInvite(roomId) && !rooms.isPublicRoom(roomId);
+        const wasAlreadyInRoom = room.state.players.some((player) => player.id === userId);
         const snapshot = await rooms.joinRoom(roomId, userId, username);
         onRoomChanged?.(roomId);
         const keyboard = new InlineKeyboard().webApp('🃏 Открыть OPTIMIST DURAK', miniAppUrl(webAppUrl, roomId));
-        await ctx.reply(
-          `Ты в команде OPTIMIST DURAK! Игроков за столом: ${snapshot.state.players.length}/${room.state.config.maxPlayers}. Открывай игру — удача любит смелых!`,
-          { reply_markup: keyboard },
-        );
+        const entryText = isGroupRoom
+          ? `Ты в общей партии OPTIMIST! Игроков за столом: ${snapshot.state.players.length}/${room.state.config.maxPlayers}. Это та самая комната из группового чата — нажми кнопку ниже, чтобы войти за свой игровой стол.`
+          : `Ты в команде OPTIMIST DURAK! Игроков за столом: ${snapshot.state.players.length}/${room.state.config.maxPlayers}. Открывай игру — удача любит смелых!`;
+        if (isGroupRoom && !wasAlreadyInRoom) {
+          throw new Error('Эта общая партия предназначена только для игроков, уже присоединившихся к столу в групповом чате.');
+        }
+        await ctx.reply(entryText, { reply_markup: keyboard });
       } catch (error) {
         await ctx.reply(error instanceof Error ? error.message : 'Не удалось присоединиться к столу.');
       }
