@@ -77,19 +77,22 @@ test('migrates old saved settings to emerald felt and persists table theme choic
       trumpPosition: 'left',
       soundEnabled: false,
       tableTheme: 'emerald',
+      cardSize: 'normal',
     });
-    store.saveSettings('legacy', { tableTheme: 'ruby' });
+    store.saveSettings('legacy', { tableTheme: 'light', cardSize: 'large' });
     store.saveSettings('legacy', { soundEnabled: true });
     assert.deepEqual(store.getSettings('legacy'), {
       userId: 'legacy',
       trumpPosition: 'left',
       soundEnabled: true,
-      tableTheme: 'ruby',
+      tableTheme: 'light',
+      cardSize: 'large',
     });
     store.close();
 
     const reopened = new PersistentStore(file);
-    assert.equal(reopened.getSettings('legacy').tableTheme, 'ruby');
+    assert.equal(reopened.getSettings('legacy').tableTheme, 'light');
+    assert.equal(reopened.getSettings('legacy').cardSize, 'large');
     reopened.close();
   } finally {
     rmSync(dir, { recursive: true, force: true });
