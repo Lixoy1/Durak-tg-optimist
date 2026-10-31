@@ -4,6 +4,13 @@ import { computeBotAction } from '../../packages/game-engine/simulator.ts';
 import type { GameAction, GameActionInput, GameConfig, GameState, PublicGameState } from '../../packages/shared-types/index.ts';
 import { PersistentStore, type PlayerStats, type UserSettings } from './storage.ts';
 
+export interface VoiceMessageMetadata {
+  id: string;
+  durationSeconds: number;
+  mimeType: string;
+  sizeBytes: number;
+}
+
 export interface ChatMessage {
   id: string;
   roomId: string;
@@ -13,6 +20,7 @@ export interface ChatMessage {
   channel: 'ROOM';
   text: string;
   timestamp: number;
+  voice?: VoiceMessageMetadata;
 }
 
 export type RoomReaction = {
@@ -401,6 +409,26 @@ export class RoomManager {
         if (first) room.idempotency.delete(first);
       }
       return this.snapshot(roomId, playerId);
+    });
+  }
+
+  public async sendVoice(roomId: string, senderId: string, voice: VoiceMessageMetadata): Promise<ChatMessage> {
+    return this.withLock(roomId, (room) => {
+      this.assertCanView(room, senderId);
+      if (!voice || !/^[a-f0-9]{32}$/.test(voice.id) || !Number.isInteger(voice.durationSeconds) ||
+          voice.durationSeconds < 1 || voice.durationSeconds > 30 || voice.sizeBytes < 256 ||
+          voice.sizeBytes > 512 * 1024 || !['audio/webm', 'audio/ogg', 'audio/mp4'].includes(voice.mimeType)) {
+        throw new RoomError('INVALID_VOICE_MESSAGE', 'Голосовое сообщение имеет неподдерживаемый формат.');
+      }
+      const now = this.now();
+      const last = room.lastChatAt.get(senderId) ?? 0;
+      if (now - last < 1_500) throw new RoomError('RATE_LIMIT', 'Подожди немного перед следующим голосовым сообщением.');
+      room.lastChatAt.set(senderId, now);
+      const player = room.engine.state.players.find((entry) => entry.id === senderId);
+      const senderName = player?.username ?? room.spectatorNames.get(senderId) ?? 'Зритель';
+      const message = this.appendChat(room, senderId, '🎙️ Голосовое сообщение', player ? 'PLAYER' : 'SPECTATOR', senderName, 'ROOM');
+      message.voice = { ...voice };
+      return message;
     });
   }
 
