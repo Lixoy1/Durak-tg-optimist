@@ -105,7 +105,9 @@
     'use strict';
     const tg = window.Telegram?.WebApp;
     const startParam = tg?.initDataUnsafe?.start_param || '';
-    const urlRoomId = new URLSearchParams(location.search).get('roomId');
+    const urlParams = new URLSearchParams(location.search);
+    const urlRoomId = urlParams.get('roomId');
+    const urlMode = urlParams.get('mode');
     let currentRoomId = startParam.startsWith('room_') ? startParam.slice(5) : urlRoomId;
     const $ = (id) => document.getElementById(id);
     const startup = $('startupError'), startupMessage = $('startupMessage'), bottomNav = $('bottomNav');
@@ -113,7 +115,7 @@
     const chatDrawer = $('chatDrawer'), messagesEl = $('messages'), unreadBadge = $('unreadBadge');
     let socket = null, authenticatedUserId = '', snapshot = null, chatOpen = false, unread = 0;
     let selectedCardId = null, selectedAttackIndex = 0, reconnectDelay = 1000, shouldReconnect = true;
-    let trumpPosition = 'right', soundEnabled = true, tableTheme = 'emerald', activeTabId = 'lobbyView', currentMode = 'play';
+    let trumpPosition = 'right', soundEnabled = true, tableTheme = 'emerald', activeTabId = 'lobbyView', currentMode = urlMode === 'spectate' ? 'spectate' : 'play';
     const decodedSet = new Set();
     const dealAnimationIds = new Set();
     const failedSet = new Set();
