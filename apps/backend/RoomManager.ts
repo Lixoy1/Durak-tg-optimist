@@ -31,6 +31,25 @@ export type TableEffect = {
   timestamp: number;
 };
 
+export interface AchievementView {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  unlockedAt?: number;
+}
+
+const ACHIEVEMENTS: Omit<AchievementView, 'unlocked' | 'unlockedAt'>[] = [
+  { id: 'first_battle', title: 'Первый выход', description: 'Сыграть первую партию', icon: '🃏' },
+  { id: 'first_win', title: 'Не сегодня, дурак!', description: 'Одержать первую победу', icon: '🏆' },
+  { id: 'first_durak', title: 'Хранитель Колоды', description: 'Первый раз остаться последним', icon: '🤡' },
+  { id: 'iron_defense', title: 'Железная защита', description: 'Отбиться картой, которая была последней в руке', icon: '🛡️' },
+  { id: 'six_cards', title: 'Шесть из шести', description: 'Выложить шестую атакующую карту за один заход', icon: '🔥' },
+  { id: 'transfer_master', title: 'Передай привет', description: 'Первый раз перевести атаку', icon: '🔁' },
+  { id: 'veteran_10', title: 'Своя колода', description: 'Сыграть 10 партий', icon: '🎖️' },
+];
+
 export interface RoomListItem {
   roomId: string;
   ownerName: string;
@@ -105,6 +124,7 @@ export class RoomError extends Error {
 
 export class RoomManager {
   private readonly rooms = new Map<string, RoomRecord>();
+  private readonly unlockedAchievements = new Map<string, Map<string, number>>();
   private readonly now: () => number;
   private readonly aiDelayMs: number;
   public readonly store: PersistentStore;
@@ -229,6 +249,30 @@ export class RoomManager {
     return this.store.ensurePlayer(userId, username);
   }
   public getLeaderboard(limit = 15): PlayerStats[] { return this.store.getLeaderboard(limit); }
+  public getDurakLeaderboard(limit = 15): PlayerStats[] { return this.store.getDurakLeaderboard(limit); }
+
+  /** Achievement unlocks intentionally live in memory on the free prototype server. */
+  public getAchievements(userId: string): AchievementView[] {
+    const unlocked = this.unlockedAchievements.get(userId) ?? new Map<string, number>();
+    return ACHIEVEMENTS.map((achievement) => {
+      const unlockedAt = unlocked.get(achievement.id);
+      return {
+        ...achievement,
+        unlocked: unlockedAt !== undefined,
+        ...(unlockedAt !== undefined ? { unlockedAt } : {}),
+      };
+    });
+  }
+
+  private unlockAchievement(userId: string, achievementId: string): void {
+    if (!ACHIEVEMENTS.some((achievement) => achievement.id === achievementId)) return;
+    let unlocked = this.unlockedAchievements.get(userId);
+    if (!unlocked) {
+      unlocked = new Map<string, number>();
+      this.unlockedAchievements.set(userId, unlocked);
+    }
+    if (!unlocked.has(achievementId)) unlocked.set(achievementId, this.now());
+  }
   public getUserSettings(userId: string): UserSettings { return this.store.getSettings(userId); }
   public updateUserSettings(userId: string, patch: { trumpPosition?: 'left' | 'right'; soundEnabled?: boolean; tableTheme?: 'emerald' | 'ruby' | 'night' | 'light'; cardSize?: 'small' | 'normal' | 'large' }): UserSettings {
     return this.store.saveSettings(userId, patch);
@@ -341,7 +385,13 @@ export class RoomManager {
         return this.snapshot(roomId, playerId);
       }
       const previousPhase = room.engine.state.phase;
+      const playerBefore = room.engine.state.players.find((player) => player.id === playerId);
+      const handCountBefore = playerBefore?.hand.length ?? 0;
+      const tableCountBefore = room.engine.state.table.length;
       room.engine.dispatch(normalized);
+      if (normalized.type === 'DEFEND' && handCountBefore === 1) this.unlockAchievement(playerId, 'iron_defense');
+      if (normalized.type === 'ATTACK' && tableCountBefore < 6 && room.engine.state.table.length === 6) this.unlockAchievement(playerId, 'six_cards');
+      if (normalized.type === 'TRANSFER') this.unlockAchievement(playerId, 'transfer_master');
       room.idempotency.set(key, { fingerprint, resultVersion: room.engine.state.version });
       if (previousPhase === 'PLAYING' && room.engine.state.phase === 'GAME_OVER') {
         this.finalizeGameOver(room);
@@ -490,9 +540,14 @@ export class RoomManager {
     const state = room.engine.state;
     for (const player of state.players) {
       if (player.id === AI_PLAYER_ID) continue;
-      if (state.loserId === null) this.store.recordMatchOutcome(player.id, player.username, 'DRAW');
-      else if (player.id === state.loserId || player.status === 'LOSER_DURAK') this.store.recordMatchOutcome(player.id, player.username, 'LOSS');
-      else this.store.recordMatchOutcome(player.id, player.username, 'WIN');
+      const outcome = state.loserId === null
+        ? 'DRAW'
+        : player.id === state.loserId || player.status === 'LOSER_DURAK' ? 'LOSS' : 'WIN';
+      const updated = this.store.recordMatchOutcome(player.id, player.username, outcome);
+      if (updated.games === 1) this.unlockAchievement(player.id, 'first_battle');
+      if (outcome === 'WIN' && updated.wins === 1) this.unlockAchievement(player.id, 'first_win');
+      if (outcome === 'LOSS' && updated.losses === 1) this.unlockAchievement(player.id, 'first_durak');
+      if (updated.games >= 10) this.unlockAchievement(player.id, 'veteran_10');
     }
     const notify = room.onGameOver;
     const finalState = structuredClone(state);
