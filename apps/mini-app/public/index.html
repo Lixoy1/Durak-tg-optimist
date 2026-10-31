@@ -20,14 +20,14 @@
 </head>
 <body>
   <header class="topbar">
-    <div><div class="brand-sub">36 КАРТ · АВТОРСКАЯ КОЛОДА</div><div class="brand">OPTIMIST DURAK</div></div>
+    <div><div class="brand-sub">36 КАРТ · 100% ОПТИМИЗМА</div><div class="brand">OPTIMIST DURAK</div></div>
     <div class="deck-indicator"><img class="deck-back" src="/assets/cards/back.webp" alt="Рубашка колоды" /><div id="deckCounter" class="counter">Колода: —</div></div>
   </header>
   <div id="toast" class="toast" role="status"></div>
 
   <div id="views">
     <main class="view scroll-stage" id="gameView" hidden>
-      <div id="statusBox" class="status-banner"><div id="status" class="status-main">Подключаем стол…</div><div id="tableCountSub" class="status-sub">На столе 0/6</div></div>
+      <div id="statusBox" class="status-banner"><div id="status" class="status-main">Подтягиваем карты — сейчас начнём!</div><div id="tableCountSub" class="status-sub">На столе 0/6</div></div>
       <section id="players" class="players"></section>
       <section class="table-wrap">
         <div id="spectatorBadge" class="spectator-pill" hidden>👁 Наблюдают: 0</div>
@@ -35,27 +35,27 @@
         <div class="side-deck-widget"><img id="sideTrumpImg" class="side-trump-card" src="/assets/cards/back.webp" alt="Козырь" hidden /><img id="sideDeckBack" class="side-deck-back" src="/assets/cards/back.webp" alt="Колода" /><span id="sideDeckBadge" class="side-deck-count">36</span></div>
       </section>
       <div id="trump" class="trump-pill">Козырь: —</div>
-      <section class="hand-area"><div id="handLabel" class="hand-label">Твои карты</div><div id="hand" class="hand"><div id="handTrack" class="hand-track"></div></div></section>
+      <section class="hand-area"><div id="handLabel" class="hand-label">Твои карты — твой характер</div><div id="hand" class="hand"><div id="handTrack" class="hand-track"></div></div></section>
       <section class="actions"><button id="primaryAction" class="btn secondary" type="button" disabled>Пас</button><button id="takeAction" class="btn ruby" type="button" disabled>Беру</button><button id="chatButton" class="chat-button" type="button">💬 Чат<span id="unreadBadge" class="badge">0</span></button></section>
     </main>
 
     <section id="lobbyView" class="view" hidden>
-      <h3 class="section-title">🃏 Открытые столы</h3>
-      <div class="actions"><button id="refreshLobbyBtn" class="btn secondary" type="button">Обновить</button><button id="createPublicRoomBtn" class="btn" type="button">+ Создать стол</button><button id="createAiRoomBtn" class="btn secondary" type="button">🤖 С ИИ</button></div>
+      <h3 class="section-title">🃏 Столы ждут оптимистов</h3>
+      <div class="actions"><button id="refreshLobbyBtn" class="btn secondary" type="button" >Освежить столы</button><button id="createPublicRoomBtn" class="btn" type="button" >+ Открыть стол</button><button id="createAiRoomBtn" class="btn secondary" type="button">🤖 Тренировка с ИИ</button></div>
       <div id="lobbyList"></div>
     </section>
 
     <section id="ratingView" class="view" hidden>
-      <h3 class="section-title">🏆 Рейтинг Оптимистов</h3><div id="podiumBox" class="podium"></div><div id="leaderList" style="margin-top:12px"></div>
+      <h3 class="section-title">🏆 Рейтинг оптимистов</h3><div id="podiumBox" class="podium"></div><div id="leaderList" style="margin-top:12px"></div>
     </section>
 
     <section id="profileView" class="view" hidden>
-      <div class="card-box" style="text-align:center"><div style="font-size:34px">😎</div><div id="profName" style="font-size:20px;font-weight:900">ОПТИМИСТ</div><div id="profId" style="font-size:11px;color:var(--muted)">Профиль игрока</div></div>
-      <div class="card-box"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--muted);font-weight:800">РЕЙТИНГ ПРОФИЛЯ</span><span id="profRating" style="font-size:21px;font-weight:900;color:var(--gold)">0,10 / 5</span></div><div class="stats-grid"><div><div id="stGames" class="stat-val">0</div><div class="stat-lbl">Игр</div></div><div><div id="stWins" class="stat-val">0</div><div class="stat-lbl">Победы</div></div><div><div id="stLosses" class="stat-val">0</div><div class="stat-lbl">Поражения</div></div><div><div id="stDraws" class="stat-val">0</div><div class="stat-lbl">Ничьи</div></div></div></div>
+      <div class="card-box" style="text-align:center"><div style="font-size:34px">😎</div><div id="profName" style="font-size:20px;font-weight:900">ОПТИМИСТ</div><div id="profId" style="font-size:11px;color:var(--muted)">Твоя игровая история</div></div>
+      <div class="card-box"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--muted);font-weight:800">ТВОЙ УРОВЕНЬ ОПТИМИЗМА</span><span id="profRating" style="font-size:21px;font-weight:900;color:var(--gold)">0,10 / 5</span></div><div class="stats-grid"><div><div id="stGames" class="stat-val">0</div><div class="stat-lbl">Игр</div></div><div><div id="stWins" class="stat-val">0</div><div class="stat-lbl">Победы</div></div><div><div id="stLosses" class="stat-val">0</div><div class="stat-lbl">Поражения</div></div><div><div id="stDraws" class="stat-val">0</div><div class="stat-lbl">Ничьи</div></div></div></div>
     </section>
 
     <section id="settingsView" class="view" hidden>
-      <h3 class="section-title">⚙️ Настройки</h3>
+      <h3 class="section-title">⚙️ Настрой игру под себя</h3>
       <div class="card-box">
         <div class="setting-row"><span>🃏 Козырь в руке</span><div class="segmented"><button id="trumpLeftBtn" class="seg-btn" type="button">Слева</button><button id="trumpRightBtn" class="seg-btn active" type="button">Справа</button></div></div>
         <div class="setting-row"><span>🔊 Звуки</span><div class="segmented"><button id="soundOnBtn" class="seg-btn active" type="button">Вкл</button><button id="soundOffBtn" class="seg-btn" type="button">Выкл</button></div></div>
@@ -63,9 +63,9 @@
     </section>
   </div>
 
-  <section id="startupError" class="overlay-error"><h2>OPTIMIST DURAK</h2><p id="startupMessage">Загружаем и проверяем авторскую колоду 36 карт…</p></section>
+  <section id="startupError" class="overlay-error"><h2>OPTIMIST DURAK</h2><p id="startupMessage">Готовим колоду из 36 карт. Каждая на месте — удача уже рядом!</p></section>
   <nav id="bottomNav" class="bottom-nav" hidden>
-    <button class="nav-tab" data-tab="ratingView" type="button"><span class="ico">📊</span><span>Рейтинг</span></button>
+    <button class="nav-tab" data-tab="ratingView" type="button"><span class="ico">📊</span><span >Рейтинг</span></button>
     <button class="nav-tab" data-tab="profileView" type="button"><span class="ico">👤</span><span>Профиль</span></button>
     <button class="nav-tab" data-tab="settingsView" type="button"><span class="ico">⚙️</span><span>Настройки</span></button>
     <button class="nav-tab" data-tab="lobbyView" type="button"><span class="ico">🏠</span><span>Лобби</span></button>
@@ -73,10 +73,10 @@
   </nav>
 
   <aside id="chatDrawer" class="drawer" aria-label="Чат стола">
-    <header class="chat-head"><span class="chat-title">💬 Живой чат стола OPTIMIST</span><button id="closeChat" class="close-chat" type="button" aria-label="Закрыть чат">×</button></header>
-    <div class="quick"><button class="chip" type="button" data-text="Красивый ход! 🔥">Красивый ход! 🔥</button><button class="chip" type="button" data-text="Сегодня мой вечер! 😎">Сегодня мой вечер! 😎</button><button class="chip" type="button" data-text="С козырей зашёл! ♠️">С козырей зашёл! ♠️</button><button class="chip" type="button" data-text="Спасибо за подарки! 😂">Спасибо за подарки! 😂</button><button class="chip" type="button" data-text="Всем удачной раздачи! ✨">Всем удачной раздачи! ✨</button></div>
+    <header class="chat-head"><span class="chat-title">💬 Чат за столом OPTIMIST</span><button id="closeChat" class="close-chat" type="button" aria-label="Закрыть чат">×</button></header>
+    <div class="quick"><button class="chip" type="button" data-text="Вот это ход! 🔥">Вот это ход! 🔥</button><button class="chip" type="button" data-text="Сегодня стол за мной! 😎">Сегодня стол за мной! 😎</button><button class="chip" type="button" data-text="Козырной настрой! ♠️">Козырной настрой! ♠️</button><button class="chip" type="button" data-text="Вот это раздача! 😂">Вот это раздача! 😂</button><button class="chip" type="button" data-text="Удача любит смелых! ✨">Удача любит смелых! ✨</button></div>
     <div id="messages" class="messages"></div>
-    <form id="chatForm" class="chat-compose"><input id="chatInput" maxlength="200" autocomplete="off" placeholder="Напиши с оптимизмом…" /><button id="sendChatBtn" class="btn send" type="submit">➤</button></form>
+    <form id="chatForm" class="chat-compose"><input id="chatInput" maxlength="200" autocomplete="off" placeholder="Добавь в чат немного оптимизма…" /><button id="sendChatBtn" class="btn send" type="submit">➤</button></form>
   </aside>
 
   <script>
@@ -200,12 +200,12 @@
             unreadBadge.textContent = unread > 9 ? '9+' : String(unread);
           }
         } else if (packet.event === 'ERROR') {
-          showToast(packet.message || 'Ошибка действия.');
+          showToast(packet.message || 'Что-то пошло не так. Попробуй ещё раз — стол ждёт!');
           if (['EXPIRED_INIT_DATA', 'INVALID_SIGNATURE', 'INVALID_AUTH_DATE'].includes(packet.code)) {
             shouldReconnect = false;
             startup.hidden = false;
             bottomNav.hidden = true;
-            startupMessage.textContent = 'Сессия Telegram устарела. Закрой и заново открой Mini App через бота.';
+            startupMessage.textContent = 'Пора обновить игровую сессию. Закрой Mini App и открой его заново через бота — продолжим!';
             activeSocket.close();
           }
         }
@@ -316,14 +316,14 @@
       statusBox.classList.remove('alert-take');
       const uncoveredIndex = state.table.findIndex((pair) => pair.defense === null);
       const canBeatUncovered = uncoveredIndex >= 0 && hand.some((card) => canCardBeat(state.table[uncoveredIndex].attack, card, state.trumpSuit));
-      if (isSpectator) $('status').textContent = 'Режим наблюдения 👁';
-      else if (state.phase === 'WAITING_FOR_PLAYERS') $('status').textContent = isOwner ? 'Ты хозяин стола — запускай!' : 'Ждём старта партии…';
-      else if (state.phase === 'GAME_OVER') $('status').textContent = state.loserId === authenticatedUserId ? 'Сегодня ты — Хранитель Колоды 🃏' : '🏆 Партия завершена';
+      if (isSpectator) $('status').textContent = 'Ты на трибуне — наблюдай за красивой игрой 👁';
+      else if (state.phase === 'WAITING_FOR_PLAYERS') $('status').textContent = isOwner ? 'Ты капитан стола — собирай команду и жми старт! 👑' : 'Команда собирается — скоро начнём! ✨';
+      else if (state.phase === 'GAME_OVER') $('status').textContent = state.loserId === authenticatedUserId ? 'Сегодня колода выбрала тебя. Реванш уже рядом! 🃏' : '🏆 Красиво сыграно! До новой встречи за столом!';
       else if (state.defenderId === authenticatedUserId) {
-        if (state.isDefenderTaking) $('status').textContent = 'Забираешь карты — ждём подкидывания…';
-        else if (uncoveredIndex >= 0 && !canBeatUncovered) { $('status').textContent = 'Бить нечем — бери'; statusBox.classList.add('alert-take'); }
-        else $('status').textContent = 'Твой отбой';
-      } else if (state.activeThrowerId === authenticatedUserId) $('status').textContent = state.table.length ? 'Подкинь или жми Пас' : 'Твой заход';
+        if (state.isDefenderTaking) $('status').textContent = 'Карты идут к тебе — соперники, не расслабляемся! 😎';
+        else if (uncoveredIndex >= 0 && !canBeatUncovered) { $('status').textContent = 'Не нашёлся ответ? Забирай карты и готовь реванш!'; statusBox.classList.add('alert-take'); }
+        else $('status').textContent = 'Твой момент — отбивай красиво! 💪';
+      } else if (state.activeThrowerId === authenticatedUserId) $('status').textContent = state.table.length ? 'Есть чем удивить? Подкидывай или жми «Пас»!' : 'Твой ход — начинай красиво! 🚀';
       else $('status').textContent = `Ходит ${state.players.find((player) => player.id === state.activeThrowerId)?.username || 'соперник'}`;
 
       playersEl.replaceChildren();
@@ -332,7 +332,7 @@
         item.className = 'player' + (player.id === state.activeThrowerId ? ' current' : '') + (player.id === state.defenderId ? ' defender' : '');
         const name = document.createElement('div'); name.className = 'name'; name.textContent = player.username + (player.id === snapshot.ownerId ? ' 👑' : '');
         const meta = document.createElement('div'); meta.className = 'meta';
-        meta.textContent = player.status === 'LOSER_DURAK' ? 'Хранитель 🃏' : player.status === 'OUT_WINNER' ? `Место ${player.finishOrder ?? 1}` : `${player.cardCount} карт`;
+        meta.textContent = player.status === 'LOSER_DURAK' ? 'Хранитель колоды 🃏' : player.status === 'OUT_WINNER' ? `Место ${player.finishOrder ?? 1}` : `${player.cardCount} карт`;
         item.append(name, meta); playersEl.append(item);
       });
 
@@ -348,7 +348,7 @@
       tableEl.replaceChildren();
       if (!state.table.length) {
         const empty = document.createElement('div'); empty.className = 'empty-note';
-        empty.textContent = state.phase === 'WAITING_FOR_PLAYERS' ? 'Ждём участников за столом' : state.phase === 'GAME_OVER' ? 'Партия завершена' : 'Стол пуст';
+        empty.textContent = state.phase === 'WAITING_FOR_PLAYERS' ? 'Места за столом ждут свою команду!' : state.phase === 'GAME_OVER' ? 'Отличная партия! Скоро сыграем ещё.' : 'Зелёное поле ждёт первого хода!';
         tableEl.style.display = 'flex'; tableEl.append(empty);
       } else {
         tableEl.style.display = 'grid';
@@ -363,7 +363,7 @@
 
       handTrack.replaceChildren();
       const sortedHand = sortHandCards(hand, state.trumpSuit);
-      $('handLabel').textContent = isSpectator ? 'Ты наблюдаешь за партией' : `Твои карты · ${sortedHand.length}`;
+      $('handLabel').textContent = isSpectator ? 'Ты смотришь игру со стороны' : `Твои карты · ${sortedHand.length}`;
       const overlap = sortedHand.length <= 6 ? -8 : sortedHand.length <= 12 ? -16 : -19;
       handTrack.style.setProperty('--fan-overlap', `${overlap}px`);
       sortedHand.forEach((card, index) => {
@@ -376,10 +376,10 @@
       const primary = $('primaryAction'), take = $('takeAction');
       primary.disabled = true; take.disabled = true; primary.textContent = 'Пас'; primary.className = 'btn secondary';
       if (!isSpectator && state.phase === 'WAITING_FOR_PLAYERS' && isOwner) {
-        primary.textContent = '🚀 Начать игру'; primary.className = 'btn'; primary.disabled = state.players.length < 2;
+        primary.textContent = '🚀 Поехали!'; primary.className = 'btn'; primary.disabled = state.players.length < 2;
         primary.onclick = () => socket?.send(JSON.stringify({ type: 'START_GAME' }));
       } else if (!isSpectator && state.phase === 'PLAYING' && state.activeThrowerId === authenticatedUserId && state.table.length > 0 && (state.table.every((pair) => pair.defense !== null) || state.isDefenderTaking)) {
-        primary.textContent = state.isDefenderTaking ? '👌 Пас (Отдать)' : '👌 Бито'; primary.className = 'btn'; primary.disabled = false;
+        primary.textContent = state.isDefenderTaking ? '👌 Пас (Отдать)' : '👌 Бито!'; primary.className = 'btn'; primary.disabled = false;
         primary.onclick = () => sendAction({ type: 'PASS', expectedVersion: state.version });
       }
       if (!isSpectator && state.phase === 'PLAYING' && state.defenderId === authenticatedUserId && !state.isDefenderTaking && state.table.length > 0) {
@@ -394,7 +394,7 @@
       const box = $('lobbyList'); box.replaceChildren();
       if (!rooms.length) {
         const empty = document.createElement('div'); empty.className = 'card-box'; empty.style.textAlign = 'center'; empty.style.color = 'var(--muted)';
-        empty.textContent = 'Открытых столов пока нет. Создай стол или начни тренировку с ИИ.'; box.append(empty); return;
+        empty.textContent = 'Пока столы свободны! Открой свой, позови друзей или потренируйся с Севером.'; box.append(empty); return;
       }
       rooms.forEach((room) => {
         const card = document.createElement('div'); card.className = 'lobby-card';
@@ -447,11 +447,11 @@
       if (state.defenderId === authenticatedUserId && !state.isDefenderTaking) {
         const selected = state.table[selectedAttackIndex];
         const target = selected && selected.defense === null ? selectedAttackIndex : state.table.findIndex((pair) => pair.defense === null);
-        if (target < 0) { showToast('Все карты на столе уже отбиты.'); return; }
+        if (target < 0) { showToast('Все карты уже под контролем — выбери другой ход.'); return; }
         sendAction({ type: 'DEFEND', attackIndex: target, cardId: card.id, expectedVersion: state.version });
       } else if (state.activeThrowerId === authenticatedUserId) {
         sendAction({ type: 'ATTACK', cardId: card.id, expectedVersion: state.version });
-      } else showToast('Сейчас ход другого игрока.');
+      } else showToast('Сейчас ход соперника — твой момент скоро придёт!');
       selectedCardId = null;
     }
 
@@ -485,18 +485,18 @@
     }
     async function saveSettings(patch) {
       try { await apiFetch('/api/settings', { method: 'POST', body: JSON.stringify(patch) }); }
-      catch (error) { showToast(error instanceof Error ? error.message : 'Не удалось сохранить настройку.'); }
+      catch (error) { showToast(error instanceof Error ? error.message : 'Настройка пока не сохранилась. Попробуй ещё раз — всё получится!'); }
     }
 
     document.querySelectorAll('.nav-tab').forEach((button) => button.addEventListener('click', () => switchTab(button.dataset.tab)));
     $('refreshLobbyBtn').addEventListener('click', () => void loadBootstrapData());
     $('createPublicRoomBtn').addEventListener('click', async () => {
       try { const data = await apiFetch('/api/rooms', { method: 'POST', body: JSON.stringify({ maxPlayers: 2, isPublic: true }) }); connectToRoom(data.roomId, 'play'); }
-      catch (error) { showToast(error instanceof Error ? error.message : 'Не удалось создать стол.'); }
+      catch (error) { showToast(error instanceof Error ? error.message : 'Стол пока не открылся. Попробуем ещё раз!'); }
     });
     $('createAiRoomBtn').addEventListener('click', async () => {
       try { const data = await apiFetch('/api/rooms', { method: 'POST', body: JSON.stringify({ vsAi: true }) }); connectToRoom(data.roomId, 'play'); }
-      catch (error) { showToast(error instanceof Error ? error.message : 'Не удалось запустить игру с ИИ.'); }
+      catch (error) { showToast(error instanceof Error ? error.message : 'Север пока не вышел на связь. Попробуй ещё раз!'); }
     });
     $('trumpLeftBtn').addEventListener('click', () => { trumpPosition = 'left'; syncSettingsButtons(); renderTableState(); void saveSettings({ trumpPosition }); });
     $('trumpRightBtn').addEventListener('click', () => { trumpPosition = 'right'; syncSettingsButtons(); renderTableState(); void saveSettings({ trumpPosition }); });
@@ -515,7 +515,7 @@
 
     (async () => {
       if (!tg?.initData) {
-        startupMessage.textContent = 'Открой эту страницу внутри Telegram через кнопку игрового бота — так сервер сможет проверить аккаунт.';
+        startupMessage.textContent = 'Открой OPTIMIST DURAK через кнопку бота в Telegram — и сразу окажешься за своим столом!';
         return;
       }
       await preloadAllAssets();
