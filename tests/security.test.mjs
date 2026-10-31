@@ -104,6 +104,55 @@ test('empty waiting rooms can be removed safely from the room manager', async ()
   assert.equal(manager.getRoom(roomId), undefined);
 });
 
+test('spectator chat is isolated from player chat in both directions', async () => {
+  let now = 10_000;
+  const manager = new RoomManager(() => now);
+  const { roomId } = manager.createRoom('owner', 'Owner', 2, { isPublic: true });
+  await manager.joinRoom(roomId, 'guest', 'Guest');
+  await manager.spectateRoom(roomId, 'observer');
+
+  const spectatorMessage = await manager.sendSpectatorChat(roomId, 'observer', 'Комментаторы на месте!');
+  assert.equal(spectatorMessage.channel, 'SPECTATORS');
+  assert.equal(spectatorMessage.senderType, 'SPECTATOR');
+
+  const observerView = manager.getSnapshot(roomId, 'observer');
+  const playerView = manager.getSnapshot(roomId, 'owner');
+  assert.equal(observerView.chatHistory.length, 0);
+  assert.equal(observerView.spectatorChatHistory.length, 1);
+  assert.equal(observerView.spectatorChatHistory[0].text, 'Комментаторы на месте!');
+  assert.equal(playerView.spectatorChatHistory.length, 0);
+
+  now += 801;
+  await manager.sendChat(roomId, 'owner', 'Игроки на связи!');
+  assert.equal(manager.getSnapshot(roomId, 'owner').chatHistory.length, 2);
+  assert.equal(manager.getSnapshot(roomId, 'observer').spectatorChatHistory.length, 1);
+  await assert.rejects(manager.sendChat(roomId, 'observer', 'Не игрок'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
+  await assert.rejects(manager.sendSpectatorChat(roomId, 'owner', 'Не зритель'), (e) => e instanceof RoomError && e.code === 'SPECTATOR_ONLY');
+});
+
+test('spectators can react and trigger cosmetic effects without mutating game state', async () => {
+  let now = 20_000;
+  const manager = new RoomManager(() => now);
+  const { roomId } = manager.createRoom('owner', 'Owner', 2, { isPublic: true });
+  await manager.joinRoom(roomId, 'guest', 'Guest');
+  await manager.spectateRoom(roomId, 'observer');
+  await manager.startGame(roomId, 'owner');
+  const before = structuredClone(manager.getRoom(roomId).state);
+
+  const reaction = await manager.sendReaction(roomId, 'observer', '🔥');
+  assert.equal(reaction.reaction, '🔥');
+  assert.equal(reaction.senderName, 'Зритель');
+  await assert.rejects(manager.sendReaction(roomId, 'observer', '😎'), (e) => e instanceof RoomError && e.code === 'RATE_LIMIT');
+
+  now += 4_001;
+  const effect = await manager.sendTableEffect(roomId, 'observer', 'curse');
+  assert.equal(effect.effect, 'curse');
+  assert.equal(effect.senderName, 'Зритель');
+  assert.deepEqual(manager.getRoom(roomId).state, before, 'cosmetic effects must never change game rules or state');
+  await assert.rejects(manager.sendTableEffect(roomId, 'observer', 'buff'), (e) => e instanceof RoomError && e.code === 'RATE_LIMIT');
+  await assert.rejects(manager.sendReaction(roomId, 'outsider', '🔥'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
+});
+
 test('room serializes concurrent actions and returns only the viewer hand', async () => {
   const manager = new RoomManager(() => 10_000);
   const { roomId } = manager.createRoom('owner', 'Owner', 2);
@@ -158,6 +207,20 @@ test('chat enforces membership, length, rate limit and a 50-message history', as
 });
 
 import { parseClientMessage, ProtocolError } from '../apps/backend/protocol.ts';
+
+test('WebSocket protocol validates spectator chat, reactions and cosmetic effects', () => {
+  assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_SPECTATOR_CHAT', text: 'Трибуна на связи!' })), {
+    type: 'SEND_SPECTATOR_CHAT', text: 'Трибуна на связи!',
+  });
+  assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: '👑' })), {
+    type: 'SEND_REACTION', reaction: '👑',
+  });
+  assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_TABLE_EFFECT', effect: 'phoenix' })), {
+    type: 'SEND_TABLE_EFFECT', effect: 'phoenix',
+  });
+  assert.throws(() => parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: '💸' })), (e) => e instanceof ProtocolError && e.code === 'INVALID_REACTION');
+  assert.throws(() => parseClientMessage(JSON.stringify({ type: 'SEND_TABLE_EFFECT', effect: 'pay_to_win' })), (e) => e instanceof ProtocolError && e.code === 'INVALID_TABLE_EFFECT');
+});
 
 test('WebSocket protocol rejects malformed, oversized and client-supplied identity fields', () => {
   assert.throws(() => parseClientMessage('{'), (e) => e instanceof ProtocolError && e.code === 'INVALID_JSON');
