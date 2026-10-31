@@ -215,6 +215,7 @@ export class DurakEngine {
       roomId: this.state.roomId,
       version: this.state.version,
       phase: this.state.phase,
+      config: { ...this.state.config },
       deckCount: this.state.deck.length,
       discardCount: this.state.discardPile.length,
       trumpCard: this.state.trumpCard,
