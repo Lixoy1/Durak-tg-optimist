@@ -1,0 +1,31 @@
+name: OPTIMIST DURAK Keep Alive
+
+on:
+  schedule:
+    # Every 10 minutes, offset from the top of the hour to reduce queue delays.
+    - cron: '7,17,27,37,47,57 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Wake Render health endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render
+        if: ${{ vars.RENDER_HEALTH_URL != '' }}
+        env:
+          HEALTH_URL: ${{ vars.RENDER_HEALTH_URL }}
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --location --fail-with-body \
+            --connect-timeout 10 --max-time 30 \
+            --output /dev/null --write-out '%{http_code}' "$HEALTH_URL")"
+          echo "Render health endpoint returned HTTP $status"
+
+      - name: Explain missing configuration
+        if: ${{ vars.RENDER_HEALTH_URL == '' }}
+        run: |
+          echo "::warning::Set the repository variable RENDER_HEALTH_URL to https://YOUR-SERVICE.onrender.com/healthz"
