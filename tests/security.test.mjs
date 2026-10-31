@@ -104,6 +104,21 @@ test('empty waiting rooms can be removed safely from the room manager', async ()
   assert.equal(manager.getRoom(roomId), undefined);
 });
 
+test('private group rooms can grant spectator-only access without becoming public', async () => {
+  const manager = new RoomManager(() => 15_000);
+  const { roomId } = manager.createRoom('owner', 'Owner', 4, { allowInviteJoin: false, allowSpectators: true });
+  assert.equal(manager.isPublicRoom(roomId), false);
+  await manager.joinRoom(roomId, 'guest', 'Guest', true);
+  await assert.rejects(manager.joinRoom(roomId, 'observer', 'Observer'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
+
+  const view = await manager.spectateRoom(roomId, 'observer', 'Observer');
+  assert.equal(view.viewerRole, 'SPECTATOR');
+  assert.equal(view.isPublic, false);
+  assert.equal('hand' in view.state.players.find((player) => player.id === 'owner'), false);
+  assert.equal(view.spectatorCount, 1);
+  assert.equal(manager.getSnapshot(roomId, 'owner').spectatorCount, 1);
+});
+
 test('spectator chat is isolated from player chat in both directions', async () => {
   let now = 10_000;
   const manager = new RoomManager(() => now);
