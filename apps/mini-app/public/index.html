@@ -27,7 +27,7 @@
 
   <div id="views">
     <main class="view scroll-stage" id="gameView" hidden>
-      <div id="statusBox" class="status-banner"><div id="status" class="status-main">Колода просыпается. Сейчас будет красиво! 🃏</div><div id="tableCountSub" class="status-sub">36 карт наготове · ждём первый ход</div></div>
+      <div id="statusBox" class="status-banner"><div id="status" class="status-main">⚡ Колода заряжена. Судьба уже тасует карты!</div><div id="tableCountSub" class="status-sub">36 карт наготове · ждём первый ход</div></div>
       <section id="players" class="players"></section>
       <section class="table-wrap">
         <div id="spectatorBadge" class="spectator-pill" hidden>👁 Наблюдают: 0</div>
@@ -63,7 +63,7 @@
     </section>
   </div>
 
-  <section id="startupError" class="overlay-error"><h2>OPTIMIST DURAK</h2><p id="startupMessage">36 карт уже на низком старте. Сейчас перемешаем судьбу — держи характер наготове!</p></section>
+  <section id="startupError" class="overlay-error"><h2>OPTIMIST DURAK</h2><p id="startupMessage">36 карт. Один стол. Никаких оправданий. Подготовь козыри — сейчас начнётся легенда!</p></section>
   <nav id="bottomNav" class="bottom-nav" hidden>
     <button class="nav-tab" data-tab="ratingView" type="button"><span class="ico">📊</span><span>Рейтинг</span></button>
     <button class="nav-tab" data-tab="profileView" type="button"><span class="ico">👤</span><span>Профиль</span></button>
@@ -225,6 +225,7 @@
 
     function suitGlyph(suit) { return ({ clubs: '♣', spades: '♠', diamonds: '♦', hearts: '♥' })[suit] || '?'; }
     function suitName(suit) { return ({ clubs: 'треф', spades: 'пик', diamonds: 'бубен', hearts: 'червей' })[suit] || 'неизвестной масти'; }
+    function suitPlural(suit) { return ({ clubs: 'трефы', spades: 'пики', diamonds: 'бубны', hearts: 'черви' })[suit] || 'неизвестна'; }
     function suitColor(suit) { return suit === 'hearts' || suit === 'diamonds' ? '#ff557c' : '#e9e1d2'; }
     function rankLabel(rank) { return ({ 11: 'Валет', 12: 'Дама', 13: 'Король', 14: 'Туз' })[rank] || String(rank); }
     function cardName(card) { return `${rankLabel(card.rank).toLowerCase()} ${suitName(card.suit)}`; }
@@ -346,12 +347,12 @@
         sideDeckBadge.textContent = String(state.deckCount);
         if (state.trumpCard) { sideTrumpImg.hidden = false; sideTrumpImg.src = `/${state.trumpCard.assetPath}`; }
       } else { sideTrumpImg.hidden = true; sideDeckBack.hidden = true; sideDeckBadge.hidden = true; }
-      $('trump').textContent = state.trumpSuit ? `Козырная масть: ${suitName(state.trumpSuit)}${state.trumpCard ? ` · ${rankLabel(state.trumpCard.rank)}` : ''}` : 'Козырная масть: ждём раздачу';
+      $('trump').textContent = state.trumpSuit ? `Козырная масть: ${suitPlural(state.trumpSuit)}${state.trumpCard ? ` · ${rankLabel(state.trumpCard.rank)}` : ''}` : 'Козырная масть: ждём раздачу';
 
       tableEl.replaceChildren();
       if (!state.table.length) {
         const empty = document.createElement('div'); empty.className = 'empty-note';
-        empty.textContent = state.phase === 'WAITING_FOR_PLAYERS' ? 'Команда собирается. Легенды не опаздывают! 👑' : state.phase === 'GAME_OVER' ? 'Финал сыгран. Реванш уже пишет сценарий! 🏆' : 'Зелёное поле ждёт первого красивого хода. Кто начнёт шоу?';
+        empty.textContent = state.phase === 'WAITING_FOR_PLAYERS' ? 'Команда собирается. Легенды не опаздывают! 👑' : state.phase === 'GAME_OVER' ? 'Финал сыгран. Реванш уже пишет сценарий! 🏆' : 'Пустое поле — чистый лист. Кто первым оставит здесь легенду? 😎';
         tableEl.style.display = 'flex'; tableEl.append(empty);
       } else {
         tableEl.style.display = 'grid';
