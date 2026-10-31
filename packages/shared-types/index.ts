@@ -2,6 +2,8 @@ export type Suit = 'clubs' | 'spades' | 'diamonds' | 'hearts';
 export type Rank = 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
 export type PlayerStatus = 'ACTIVE' | 'OUT_WINNER' | 'LOSER_DURAK';
 export type GamePhase = 'WAITING_FOR_PLAYERS' | 'PLAYING' | 'GAME_OVER';
+export type GameMode = 'PODKIDNOY' | 'PEREVODNOY';
+export type AfterTakeRule = 'ATTACKER' | 'DEFENDER';
 
 export interface Card {
   id: string;
@@ -30,6 +32,10 @@ export interface GameConfig {
   maxPlayers: number;
   /** Opening-bout attack cap: 6 for standard rules; 5 is an optional house-rule variant. */
   firstBoutMaxCards: 5 | 6;
+  /** Defaults to PODKIDNOY for old room-creation payloads. */
+  mode?: GameMode;
+  /** Who leads the next bout after the defender takes the cards. */
+  afterTake?: AfterTakeRule;
 }
 
 export interface GameState {
@@ -60,14 +66,16 @@ export type GameAction =
   | { type: 'ATTACK'; playerId: string; cardId: string; expectedVersion: number }
   | { type: 'DEFEND'; playerId: string; attackIndex: number; cardId: string; expectedVersion: number }
   | { type: 'TAKE'; playerId: string; expectedVersion: number }
-  | { type: 'PASS'; playerId: string; expectedVersion: number };
+  | { type: 'PASS'; playerId: string; expectedVersion: number }
+  | { type: 'TRANSFER'; playerId: string; cardId: string; expectedVersion: number };
 
 /** Client-originated action shape; playerId is always injected by the authenticated server session. */
 export type GameActionInput =
   | { type: 'ATTACK'; cardId: string; expectedVersion: number }
   | { type: 'DEFEND'; attackIndex: number; cardId: string; expectedVersion: number }
   | { type: 'TAKE'; expectedVersion: number }
-  | { type: 'PASS'; expectedVersion: number };
+  | { type: 'PASS'; expectedVersion: number }
+  | { type: 'TRANSFER'; cardId: string; expectedVersion: number };
 
 export interface PublicPlayerState {
   id: string;
