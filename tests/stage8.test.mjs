@@ -153,7 +153,7 @@ test('Mini App uses textContent rather than innerHTML for dynamic data and track
   assert.match(html, /decodedSet/);
   assert.match(html, /failedSet/);
   assert.match(html, /img\.decode\(\)/);
-  assert.match(html, /--card-width:68px;--card-height:100px/);
+  assert.match(html, /--card-width:78px;--card-height:114px/);
   assert.match(html, /cardSizeSmallBtn/);
   assert.match(html, /themeLightBtn/);
   for (const tab of ['ratingView', 'profileView', 'settingsView', 'lobbyView', 'gameView']) {
@@ -208,7 +208,7 @@ test('authenticated HTTP API creates public rooms and persists user settings', a
   });
   assert.equal(settingsRes.status, 200);
   assert.deepEqual((await settingsRes.json()).settings, {
-    userId: '777', trumpPosition: 'left', soundEnabled: false, tableTheme: 'ruby', cardSize: 'normal',
+    userId: '777', trumpPosition: 'left', soundEnabled: false, tableTheme: 'ruby', cardSize: 'large',
   });
 
   const bootstrap = await fetch(`${baseUrl}/api/bootstrap`, { headers });
