@@ -138,11 +138,19 @@
 
     if (tg) { tg.ready(); tg.expand(); }
 
+    // Bust Telegram/WebView and CDN caches for the replaced Queen of Clubs artwork.
+    function assetUrl(path) {
+      const normalized = path.startsWith('/') ? path : `/${path}`;
+      return normalized === '/assets/cards/clubs/Q.webp'
+        ? `${normalized}?v=20261101-qclubs-512`
+        : normalized;
+    }
+
     function assetUrls() {
       const suits = ['clubs', 'spades', 'diamonds', 'hearts'];
       const ranks = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
       const urls = ['/assets/cards/back.webp', '/assets/cards/back.svg'];
-      for (const suit of suits) for (const rank of ranks) urls.push(`/assets/cards/${suit}/${rank}.webp`);
+      for (const suit of suits) for (const rank of ranks) urls.push(assetUrl(`/assets/cards/${suit}/${rank}.webp`));
       return urls;
     }
 
@@ -426,7 +434,7 @@
     }
 
     function createCardElement(card, extraClass = '') {
-      const url = `/${card.assetPath}`;
+      const url = assetUrl(card.assetPath);
       if (failedSet.has(url)) {
         const fallback = fallbackCard(card);
         if (extraClass) fallback.classList.add(extraClass);
@@ -576,7 +584,7 @@
         sideDeckBack.hidden = state.deckCount <= 1;
         sideDeckBadge.hidden = false;
         sideDeckBadge.textContent = String(state.deckCount);
-        if (state.trumpCard) { sideTrumpImg.hidden = false; sideTrumpImg.src = `/${state.trumpCard.assetPath}`; }
+        if (state.trumpCard) { sideTrumpImg.hidden = false; sideTrumpImg.src = assetUrl(state.trumpCard.assetPath); }
       } else { sideTrumpImg.hidden = true; sideDeckBack.hidden = true; sideDeckBadge.hidden = true; }
       $('trump').textContent = state.trumpSuit ? `Козырь: ${suitGlyph(state.trumpSuit)} ${suitPlural(state.trumpSuit)}${state.trumpCard ? ` · ${rankLabel(state.trumpCard.rank)}` : ''}` : 'Козырь: ждём раздачу';
 
