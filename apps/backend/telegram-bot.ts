@@ -58,7 +58,6 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
   const activeLobbyByChat = new Map<number, string>();
   const startedGroupLobbies = new Map<string, { lobby: GroupLobby; waitingFor: Set<string> }>();
   let botUsername = options.botUsername?.replace(/^@/, '').trim() || '';
-  const appShortName = options.appShortName?.trim() || 'game';
 
   async function getBotUsername(): Promise<string> {
     if (!botUsername) {
@@ -336,7 +335,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       const roomId = payload.slice('room_'.length);
       const room = rooms.getRoom(roomId);
       if (!room) {
-        await ctx.reply('Этот стол уже завершил партию или исчез. Создай новый через /start — впереди ещё игры!');
+        await ctx.reply('Не удалось найти эту общую комнату. Не создавай новую через личный /start — вернись в групповой чат и начни новую партию командой /durak.');
         return;
       }
       try {
@@ -346,7 +345,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
         onRoomChanged?.(roomId);
         const keyboard = new InlineKeyboard().webApp('🃏 Открыть OPTIMIST DURAK', miniAppUrl(webAppUrl, roomId));
         const entryText = isGroupRoom
-          ? `Ты в общей партии OPTIMIST! Игроков за столом: ${snapshot.state.players.length}/${room.state.config.maxPlayers}. Это та самая комната из группового чата — нажми кнопку ниже, чтобы войти за свой игровой стол.`
+          ? `Ты в общей партии OPTIMIST! Комната ${roomId}. Игроков за столом: ${snapshot.state.players.length}/${room.state.config.maxPlayers}. Это та самая комната из группового чата — нажми кнопку ниже, чтобы войти за свой игровой стол.`
           : `Ты в команде OPTIMIST DURAK! Игроков за столом: ${snapshot.state.players.length}/${room.state.config.maxPlayers}. Открывай игру — удача любит смелых!`;
         if (isGroupRoom && !wasAlreadyInRoom) {
           throw new Error('Эта общая партия предназначена только для игроков, уже присоединившихся к столу в групповом чате.');
