@@ -38,7 +38,7 @@ test('PersistentStore survives restart and preserves stats and settings', () => 
     assert.deepEqual(second.ensurePlayer('u1', 'Вася'), {
       userId: 'u1', username: 'Вася', games: 1, wins: 1, losses: 0, draws: 0, rating: 0.3,
     });
-    assert.deepEqual(second.getSettings('u1'), { userId: 'u1', trumpPosition: 'left', soundEnabled: false, tableTheme: 'emerald', cardSize: 'normal' });
+    assert.deepEqual(second.getSettings('u1'), { userId: 'u1', trumpPosition: 'left', soundEnabled: false, tableTheme: 'emerald', cardSize: 'large' });
     second.close();
   } finally {
     rmSync(dir, { recursive: true, force: true });
