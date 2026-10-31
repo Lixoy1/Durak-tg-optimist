@@ -73,7 +73,7 @@ export class DurakEngine {
 
   constructor(
     roomId: string,
-    config: GameConfig = { maxPlayers: 4, firstBoutMaxCards: 6 },
+    config: GameConfig = { maxPlayers: 4, firstBoutMaxCards: 6, mode: 'PODKIDNOY', afterTake: 'ATTACKER' },
     randomIndex: RandomIndex = secureRandomIndex,
   ) {
     if (!roomId.trim()) throw new GameRuleError('INVALID_ROOM', 'У партии должен быть идентификатор комнаты.');
@@ -83,12 +83,18 @@ export class DurakEngine {
     if (config.firstBoutMaxCards !== 5 && config.firstBoutMaxCards !== 6) {
       throw new GameRuleError('INVALID_CONFIG', 'Лимит первого захода должен быть 5 или 6 карт.');
     }
+    if (config.mode !== undefined && config.mode !== 'PODKIDNOY' && config.mode !== 'PEREVODNOY') {
+      throw new GameRuleError('INVALID_CONFIG', 'Неизвестный режим игры.');
+    }
+    if (config.afterTake !== undefined && config.afterTake !== 'ATTACKER' && config.afterTake !== 'DEFENDER') {
+      throw new GameRuleError('INVALID_CONFIG', 'Некорректное правило следующего хода.');
+    }
     this.randomIndex = randomIndex;
     this.state = {
       roomId,
       version: 1,
       phase: 'WAITING_FOR_PLAYERS',
-      config: { ...config },
+      config: { ...config, mode: config.mode ?? 'PODKIDNOY', afterTake: config.afterTake ?? 'ATTACKER' },
       deck: [],
       discardPile: [],
       trumpCard: null,
@@ -181,6 +187,9 @@ export class DurakEngine {
           break;
         case 'PASS':
           this.handlePass(action.playerId);
+          break;
+        case 'TRANSFER':
+          this.handleTransfer(action.playerId, action.cardId);
           break;
         default: {
           const unreachable: never = action;
@@ -388,6 +397,47 @@ export class DurakEngine {
     this.maybeCompleteBout();
   }
 
+  private handleTransfer(playerId: string, cardId: string): void {
+    if ((this.state.config.mode ?? 'PODKIDNOY') !== 'PEREVODNOY') {
+      throw new GameRuleError('TRANSFER_DISABLED', 'За этим столом подкидной режим. Перевод здесь не действует.');
+    }
+    const playerIndex = this.getActivePlayerIndex(playerId);
+    if (playerIndex !== this.state.defenderIndex) {
+      throw new GameRuleError('NOT_DEFENDER', 'Перевести атаку может только защищающийся.');
+    }
+    if (this.state.isDefenderTaking) {
+      throw new GameRuleError('ALREADY_TAKING', 'Ты уже решил брать карты — переводить поздно.');
+    }
+    if (this.state.table.length === 0 || this.state.table.some((pair) => pair.defense !== null)) {
+      throw new GameRuleError('TRANSFER_NOT_ALLOWED', 'Перевод возможен до начала отбоя, пока атака не покрыта.');
+    }
+    const defender = this.state.players[playerIndex]!;
+    const cardIndex = defender.hand.findIndex((card) => card.id === cardId);
+    if (cardIndex < 0) throw new GameRuleError('CARD_NOT_IN_HAND', 'Этой карты нет в твоей руке.');
+    const card = defender.hand[cardIndex]!;
+    if (!this.ranksOnTable().has(card.rank)) {
+      throw new GameRuleError('INVALID_TRANSFER_RANK', 'Для перевода нужна карта того же достоинства, что уже лежит на столе.');
+    }
+    const nextDefenderIndex = this.nextActivePlayerIndex(playerIndex);
+    const nextDefender = this.state.players[nextDefenderIndex]!;
+    const nextAttackCount = this.state.table.length + 1;
+    const attackLimit = Math.min(6, nextDefender.hand.length);
+    if (nextAttackCount > attackLimit) {
+      throw new GameRuleError('TRANSFER_LIMIT', `У следующего игрока только ${nextDefender.hand.length} карт — столько атак ему не перевести.`);
+    }
+
+    defender.hand.splice(cardIndex, 1);
+    this.state.table.push({ attack: card, defense: null });
+    // The transferor becomes the new attacker; the next active player inherits the defense.
+    this.state.attackerIndex = playerIndex;
+    this.state.activeThrowerIndex = playerIndex;
+    this.state.defenderIndex = nextDefenderIndex;
+    this.state.defenderHandStartCount = nextDefender.hand.length;
+    this.state.isDefenderTaking = false;
+    this.state.players.forEach((entry) => { entry.hasPassedBout = false; });
+    this.maybeCompleteBout();
+  }
+
   private handleTake(playerId: string): void {
     const playerIndex = this.getActivePlayerIndex(playerId);
     if (playerIndex !== this.state.defenderIndex) {
@@ -514,9 +564,10 @@ export class DurakEngine {
     this.updateWinnersAndCheckGameOver();
     if (this.state.phase === 'GAME_OVER') return;
 
-    // House rule: if the defender picked up, the original attacker leads again;
-    // if the defender beat everything, the defender leads the next bout.
-    let nextAttacker = defenderTookCards
+    // Configurable house rule: after a pickup either the original attacker
+    // or the defender who took the cards leads the next bout.
+    const afterTake = this.state.config.afterTake ?? 'ATTACKER';
+    const nextAttacker = defenderTookCards && afterTake === 'ATTACKER'
       ? this.firstActiveAtOrAfter(previousAttackerIndex)
       : this.firstActiveAtOrAfter(previousDefenderIndex);
 
