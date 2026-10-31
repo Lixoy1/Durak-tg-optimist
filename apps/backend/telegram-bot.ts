@@ -57,7 +57,6 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
   const bot = new Bot(token);
   const activeLobbies = new Map<string, GroupLobby>();
   const activeLobbyByChat = new Map<number, string>();
-  const startedGroupLobbies = new Map<string, { lobby: GroupLobby; waitingFor: Set<string> }>();
   let botUsername = options.botUsername?.replace(/^@/, '').trim() || '';
 
   async function getBotUsername(): Promise<string> {
@@ -91,15 +90,6 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
         error instanceof Error ? error.message : 'unknown');
     }
   }
-
-  rooms.setPlayerConnectedListener((roomId, playerId) => {
-    const pending = startedGroupLobbies.get(roomId);
-    if (!pending || !pending.waitingFor.delete(playerId)) return;
-    if (pending.waitingFor.size === 0) {
-      startedGroupLobbies.delete(roomId);
-      void deleteGroupMessage(pending.lobby.chatId, pending.lobby.messageId);
-    }
-  });
 
   function renderLobbyText(lobby: GroupLobby): string {
     const engine = getLobbyEngine(lobby);
@@ -220,13 +210,8 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     }
 
     lobby.status = 'STARTED';
-    startedGroupLobbies.set(lobby.roomId, {
-      lobby,
-      waitingFor: new Set(startedEngine.state.players.map((player) => player.id)),
-    });
     removeLobbyIndexes(lobby);
     rooms.setGameOverHandler(lobby.roomId, async (finalState) => {
-      startedGroupLobbies.delete(lobby.roomId);
       await deleteGroupMessage(lobby.chatId, lobby.messageId);
       try {
         await announceGameResult(lobby.chatId, finalState);
