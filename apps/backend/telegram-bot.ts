@@ -29,9 +29,10 @@ const MAX_GROUP_PLAYERS = 6;
 const LOBBY_DURATION_SECONDS = 60;
 const LOBBY_REFRESH_SECONDS = 15;
 
-function miniAppUrl(baseUrl: string, roomId: string): string {
+function miniAppUrl(baseUrl: string, roomId: string, mode: 'play' | 'spectate' = 'play'): string {
   const url = new URL(baseUrl);
   url.searchParams.set('roomId', roomId);
+  if (mode === 'spectate') url.searchParams.set('mode', 'spectate');
   return url.toString();
 }
 
@@ -70,9 +71,12 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
 
   async function groupRoomEntryUrl(roomId: string): Promise<string> {
     const username = await getBotUsername();
-    // Use the standard bot deep link for group launches. It opens /start room_<id>,
-    // then the bot returns a native Web App button bound to this exact room.
     return `https://t.me/${username}?start=${encodeURIComponent(`room_${roomId}`)}`;
+  }
+
+  async function groupSpectatorEntryUrl(roomId: string): Promise<string> {
+    const username = await getBotUsername();
+    return `https://t.me/${username}?start=${encodeURIComponent(`watch_${roomId}`)}`;
   }
 
   function getLobbyEngine(lobby: GroupLobby) {
@@ -119,13 +123,14 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     ].join('\n');
   }
 
-  function renderLobbyKeyboard(lobby: GroupLobby): InlineKeyboard {
+  async function renderLobbyKeyboard(lobby: GroupLobby): Promise<InlineKeyboard> {
     const engine = getLobbyEngine(lobby);
     const count = engine?.state.players.length ?? 0;
     const keyboard = new InlineKeyboard()
       .text('➕ За стол!', `join_${lobby.roomId}`)
       .text('➖ Выйти', `leave_${lobby.roomId}`);
     if (count >= 2) keyboard.row().text('👑 Погнали!', `start_${lobby.roomId}`);
+    keyboard.row().url('👀 На трибуну', await groupSpectatorEntryUrl(lobby.roomId));
     return keyboard;
   }
 
@@ -134,7 +139,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     try {
       await bot.api.editMessageText(lobby.chatId, lobby.messageId, renderLobbyText(lobby), {
         parse_mode: 'HTML',
-        reply_markup: renderLobbyKeyboard(lobby),
+        reply_markup: await renderLobbyKeyboard(lobby),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
@@ -235,16 +240,20 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       const players = startedEngine.state.players.map((player) => `<b>${escapeHtml(player.username)}</b>`).join(', ');
       const firstPlayer = startedEngine.state.players[startedEngine.state.attackerIndex]?.username ?? 'Игрок';
       const url = await groupRoomEntryUrl(lobby.roomId);
+      const spectatorUrl = await groupSpectatorEntryUrl(lobby.roomId);
       await bot.api.editMessageText(lobby.chatId, lobby.messageId, [
         '<b>🔥 OPTIMIST — ПОЕХАЛИ! ПАРТИЯ НАЧАЛАСЬ!</b>',
         '',
         `👥 <b>Команда за столом:</b> ${players}`,
         `🃏 Карты на руках! Первый ход за <b>${escapeHtml(firstPlayer)}</b> — покажи красивую игру!`,
         '',
-        'Каждый участник нажимает кнопку ниже. Откроется личный чат OPTIMIST, где бот пришлёт кнопку входа ИМЕННО В ЭТУ общую партию. Нажмите её — и вы окажетесь за одним столом, каждый со своими картами. Не создавайте новую комнату через обычный /start!',
-      ].join('\n'), {
+        'Игроки нажимают «Войти в общую партию». Зрители — «На трибуну»: у них отдельный чат и реакции, но нет доступа к картам игроков.',
+      ].join('\\n'), {
         parse_mode: 'HTML',
-        reply_markup: new InlineKeyboard().url('🃏 Войти в общую партию', url),
+        reply_markup: new InlineKeyboard()
+          .url('🃏 Войти в общую партию', url)
+          .row()
+          .url('👀 Смотреть матч', spectatorUrl),
       });
     } catch (error) {
       console.error('[telegram-bot] game started but group link could not be published:', error instanceof Error ? error.message : 'unknown');
@@ -293,7 +302,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       return;
     }
 
-    const { roomId } = rooms.createRoom(creatorId, creatorName, MAX_GROUP_PLAYERS, { allowInviteJoin: false });
+    const { roomId } = rooms.createRoom(creatorId, creatorName, MAX_GROUP_PLAYERS, { allowInviteJoin: false, allowSpectators: true });
     const lobby: GroupLobby = {
       roomId,
       chatId,
@@ -308,7 +317,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     try {
       const message = await bot.api.sendMessage(chatId, renderLobbyText(lobby), {
         parse_mode: 'HTML',
-        reply_markup: renderLobbyKeyboard(lobby),
+        reply_markup: await renderLobbyKeyboard(lobby),
       });
       lobby.messageId = message.message_id;
       lobby.timer = setInterval(() => { void tickLobby(lobby); }, LOBBY_REFRESH_SECONDS * 1000);
@@ -330,6 +339,31 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     const userId = String(telegramUser.id);
     const username = displayName(telegramUser);
     const payload = typeof ctx.match === 'string' ? ctx.match.trim() : '';
+
+    if (ctx.chat.type === 'private' && payload.startsWith('watch_')) {
+      const roomId = payload.slice('watch_'.length);
+      const room = rooms.getRoom(roomId);
+      if (!room) {
+        await ctx.reply('Матч уже завершён или ушёл в историю. Возвращайся в группу — следующая партия не за горами!');
+        return;
+      }
+      try {
+        if (room.state.players.some((player) => player.id === userId)) {
+          await ctx.reply('Ты уже игрок этой партии! Для тебя открыта кнопка входа игрока в групповом сообщении. 👑');
+          return;
+        }
+        const spectator = await rooms.spectateRoom(roomId, userId, username);
+        onRoomChanged?.(roomId);
+        const keyboard = new InlineKeyboard().webApp('👁 Смотреть матч', miniAppUrl(webAppUrl, roomId, 'spectate'));
+        await ctx.reply(
+          `Ты на трибуне OPTIMIST! В общей партии ${spectator.state.players.length} игроков. Видишь игровое поле, можешь реагировать и общаться в отдельном чате зрителей — карты игроков останутся секретом.`,
+          { reply_markup: keyboard },
+        );
+      } catch (error) {
+        await ctx.reply(error instanceof Error ? error.message : 'Не удалось открыть место на трибуне.');
+      }
+      return;
+    }
 
     if (ctx.chat.type === 'private' && payload.startsWith('room_')) {
       const roomId = payload.slice('room_'.length);
