@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { verifyTelegramInitData, AuthError } from '../apps/backend/auth.ts';
 import { RoomManager, RoomError } from '../apps/backend/RoomManager.ts';
+import { PersistentStore } from '../apps/backend/storage.ts';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const token = '123456789:abcdefghijklmnopqrstuvwxyzABCDEFG';
 function signedInitData(user, authDate) {
@@ -54,6 +58,42 @@ test('group lobby rooms require an explicit join and transfer the host when the 
   assert.equal(manager.getOwnerId(roomId), 'friend');
   await assert.rejects(manager.startGame(roomId, 'creator'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
   await assert.rejects(manager.startGame(roomId, 'stranger'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
+});
+
+test('migrates old saved settings to emerald felt and persists table theme choices', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'optimist-settings-'));
+  const file = join(dir, 'store.json');
+  try {
+    writeFileSync(file, JSON.stringify({
+      version: 1,
+      stats: {},
+      settings: {
+        legacy: { userId: 'legacy', trumpPosition: 'left', soundEnabled: false },
+      },
+    }));
+    const store = new PersistentStore(file);
+    assert.deepEqual(store.getSettings('legacy'), {
+      userId: 'legacy',
+      trumpPosition: 'left',
+      soundEnabled: false,
+      tableTheme: 'emerald',
+    });
+    store.saveSettings('legacy', { tableTheme: 'ruby' });
+    store.saveSettings('legacy', { soundEnabled: true });
+    assert.deepEqual(store.getSettings('legacy'), {
+      userId: 'legacy',
+      trumpPosition: 'left',
+      soundEnabled: true,
+      tableTheme: 'ruby',
+    });
+    store.close();
+
+    const reopened = new PersistentStore(file);
+    assert.equal(reopened.getSettings('legacy').tableTheme, 'ruby');
+    reopened.close();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('empty waiting rooms can be removed safely from the room manager', async () => {
