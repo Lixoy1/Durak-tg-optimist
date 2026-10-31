@@ -27,7 +27,7 @@
 
   <div id="views">
     <main class="view scroll-stage" id="gameView" hidden>
-      <div id="statusBox" class="status-banner"><div id="status" class="status-main">Подтягиваем карты — сейчас начнём!</div><div id="tableCountSub" class="status-sub">На столе 0/6</div></div>
+      <div id="statusBox" class="status-banner"><div id="status" class="status-main">Колода просыпается. Сейчас будет красиво! 🃏</div><div id="tableCountSub" class="status-sub">36 карт наготове · ждём первый ход</div></div>
       <section id="players" class="players"></section>
       <section class="table-wrap">
         <div id="spectatorBadge" class="spectator-pill" hidden>👁 Наблюдают: 0</div>
@@ -63,7 +63,7 @@
     </section>
   </div>
 
-  <section id="startupError" class="overlay-error"><h2>OPTIMIST DURAK</h2><p id="startupMessage">Готовим колоду из 36 карт. Каждая на месте — удача уже рядом!</p></section>
+  <section id="startupError" class="overlay-error"><h2>OPTIMIST DURAK</h2><p id="startupMessage">36 карт уже на низком старте. Сейчас перемешаем судьбу — держи характер наготове!</p></section>
   <nav id="bottomNav" class="bottom-nav" hidden>
     <button class="nav-tab" data-tab="ratingView" type="button"><span class="ico">📊</span><span>Рейтинг</span></button>
     <button class="nav-tab" data-tab="profileView" type="button"><span class="ico">👤</span><span>Профиль</span></button>
@@ -220,12 +220,14 @@
           }, reconnectDelay);
         }
       });
-      activeSocket.addEventListener('error', () => showToast('Связь со столом прервалась. Уже пытаемся вернуться!'));
+      activeSocket.addEventListener('error', () => showToast('Связь со столом моргнула. OPTIMIST уже ищет дорогу обратно!'));
     }
 
     function suitGlyph(suit) { return ({ clubs: '♣', spades: '♠', diamonds: '♦', hearts: '♥' })[suit] || '?'; }
+    function suitName(suit) { return ({ clubs: 'треф', spades: 'пик', diamonds: 'бубен', hearts: 'червей' })[suit] || 'неизвестной масти'; }
     function suitColor(suit) { return suit === 'hearts' || suit === 'diamonds' ? '#ff557c' : '#e9e1d2'; }
-    function rankLabel(rank) { return ({ 11: 'J', 12: 'Q', 13: 'K', 14: 'A' })[rank] || String(rank); }
+    function rankLabel(rank) { return ({ 11: 'Валет', 12: 'Дама', 13: 'Король', 14: 'Туз' })[rank] || String(rank); }
+    function cardName(card) { return `${rankLabel(card.rank).toLowerCase()} ${suitName(card.suit)}`; }
 
     function fallbackCard(card) {
       const frame = document.createElement('div');
@@ -267,7 +269,8 @@
 
       const img = document.createElement('img');
       img.className = `playing-card${decodedSet.has(url) ? ' ready' : ''}`;
-      img.alt = `${rankLabel(card.rank)} ${suitGlyph(card.suit)}`;
+      img.alt = cardName(card);
+      img.title = cardName(card);
       img.onload = () => {
         decodedSet.add(url);
         img.classList.add('ready');
@@ -343,7 +346,7 @@
         sideDeckBadge.textContent = String(state.deckCount);
         if (state.trumpCard) { sideTrumpImg.hidden = false; sideTrumpImg.src = `/${state.trumpCard.assetPath}`; }
       } else { sideTrumpImg.hidden = true; sideDeckBack.hidden = true; sideDeckBadge.hidden = true; }
-      $('trump').textContent = state.trumpSuit ? `Козырь: ${suitGlyph(state.trumpSuit)}${state.trumpCard ? ` · ${rankLabel(state.trumpCard.rank)}` : ''}` : 'Козырь: —';
+      $('trump').textContent = state.trumpSuit ? `Козырная масть: ${suitName(state.trumpSuit)}${state.trumpCard ? ` · ${rankLabel(state.trumpCard.rank)}` : ''}` : 'Козырная масть: ждём раздачу';
 
       tableEl.replaceChildren();
       if (!state.table.length) {
@@ -369,7 +372,7 @@
       sortedHand.forEach((card, index) => {
         const item = document.createElement('button'); item.type = 'button';
         item.className = 'hand-card' + (selectedCardId === card.id ? ' selected' : '');
-        item.style.zIndex = String(index + 1); item.setAttribute('aria-label', `Выбрать ${rankLabel(card.rank)} ${suitGlyph(card.suit)}`);
+        item.style.zIndex = String(index + 1); item.setAttribute('aria-label', `Выбрать ${cardName(card)}`);
         item.append(createCardElement(card)); item.addEventListener('click', () => onCardSelected(card)); handTrack.append(item);
       });
 
@@ -394,7 +397,7 @@
       const box = $('lobbyList'); box.replaceChildren();
       if (!rooms.length) {
         const empty = document.createElement('div'); empty.className = 'card-box'; empty.style.textAlign = 'center'; empty.style.color = 'var(--muted)';
-        empty.textContent = 'Пока столы свободны! Открой свой, позови друзей или потренируйся с Севером.'; box.append(empty); return;
+        empty.textContent = 'Пока тишина перед бурей. Открой свой стол, брось вызов друзьям или проверь характер на Севере (ИИ)!'; box.append(empty); return;
       }
       rooms.forEach((room) => {
         const card = document.createElement('div'); card.className = 'lobby-card';
