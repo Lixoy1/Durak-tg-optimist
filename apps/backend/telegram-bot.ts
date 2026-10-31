@@ -80,23 +80,23 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
 
   function renderLobbyText(lobby: GroupLobby): string {
     const engine = getLobbyEngine(lobby);
-    if (!engine) return '<b>♠️ OPTIMIST — НЕ ДУРАК ♦️</b>\n\nЭтот стол уже закрыт.';
+    if (!engine) return '<b>♠️ OPTIMIST — НЕ ДУРАК ♦️</b>\n\nЭтот стол уже сыграл свою партию. Открой новый — впереди ещё победы!';
     const players = engine.state.players;
     const lines = players.map((player, index) => {
-      const crown = player.id === lobby.creatorId ? ' 👑 <i>создатель стола</i>' : '';
+      const crown = player.id === lobby.creatorId ? ' 👑 <i>капитан стола</i>' : '';
       return `${index + 1}. <b>${escapeHtml(player.username)}</b>${crown}`;
     });
-    if (lines.length === 0) lines.push('<i>Пока никого нет за столом.</i>');
+    if (lines.length === 0) lines.push('<i>Команда только собирается. Стань первым!</i>');
     return [
       '<b>♠️ OPTIMIST — НЕ ДУРАК ♦️</b>',
       '',
-      'Собираем компанию на партию в подкидного дурака!',
+      'Собираем команду OPTIMIST! Кто сегодня заберёт победу?',
       '',
       ...lines,
       '',
-      `👥 <b>Игроки:</b> ${players.length}/${engine.state.config.maxPlayers}`,
+      `👥 <b>Команда:</b> ${players.length}/${engine.state.config.maxPlayers}`,
       `⏳ <b>До старта:</b> ${lobby.secondsLeft} сек.`,
-      players.length >= 2 ? '\nСоздатель стола может запускать партию.' : '\nНужно хотя бы 2 игрока.',
+      players.length >= 2 ? '\nКоманда готова? Капитан может начинать — пусть победит лучший настрой! 🚀' : '\nНужен ещё хотя бы один игрок — позови друга и погнали!',
     ].join('\n');
   }
 
@@ -104,9 +104,9 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     const engine = getLobbyEngine(lobby);
     const count = engine?.state.players.length ?? 0;
     const keyboard = new InlineKeyboard()
-      .text('➕ Присоединиться', `join_${lobby.roomId}`)
+      .text('➕ За стол!', `join_${lobby.roomId}`)
       .text('➖ Выйти', `leave_${lobby.roomId}`);
-    if (count >= 2) keyboard.row().text('👑 Начать игру', `start_${lobby.roomId}`);
+    if (count >= 2) keyboard.row().text('👑 Погнали!', `start_${lobby.roomId}`);
     return keyboard;
   }
 
@@ -142,18 +142,18 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       .sort((a, b) => (a.finishOrder ?? Number.MAX_SAFE_INTEGER) - (b.finishOrder ?? Number.MAX_SAFE_INTEGER));
     const loser = state.players.find((player) => player.id === state.loserId)
       ?? state.players.find((player) => player.status === 'LOSER_DURAK');
-    const lines = ['<b>🏆 OPTIMIST — ИТОГИ ПАРТИИ</b>', '', `🃏 Стол <code>${escapeHtml(state.roomId)}</code>`, ''];
+    const lines = ['<b>🏆 OPTIMIST — ИТОГИ БИТВЫ</b>', '', `🃏 Стол <code>${escapeHtml(state.roomId)}</code>`, ''];
     winners.forEach((player, index) => {
       const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '✨';
       lines.push(`${medal} <b>${escapeHtml(player.username)}</b> — место ${player.finishOrder ?? index + 1}`);
     });
     lines.push('');
     if (loser) {
-      lines.push(`🃏 <b>Хранитель Колоды:</b> ${escapeHtml(loser.username)}`);
+      lines.push(`🃏 <b>Хранитель Колоды:</b> ${escapeHtml(loser.username)}\n<i>Сегодня колода решила пошутить. Реванш уже рядом!</i>`);
     } else {
-      lines.push('🤝 <b>Партия завершилась без проигравшего.</b>');
+      lines.push('🤝 <b>Ничья? Значит, победила дружба и красивая игра!</b>');
     }
-    lines.push('', 'Готовы к реваншу? Накрываем новый стол!');
+    lines.push('', 'Отличная партия! Готовы повторить? Новый стол уже ждёт!');
     await bot.api.sendMessage(chatId, lines.join('\n'), {
       parse_mode: 'HTML',
       reply_markup: new InlineKeyboard().text('🔄 Новый стол', 'new_table'),
@@ -211,19 +211,19 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       const firstPlayer = startedEngine.state.players[startedEngine.state.attackerIndex]?.username ?? 'Игрок';
       const url = await directMiniAppUrl(lobby.roomId);
       await bot.api.editMessageText(lobby.chatId, lobby.messageId, [
-        '<b>🔥 OPTIMIST — ПАРТИЯ НАЧАЛАСЬ!</b>',
+        '<b>🔥 OPTIMIST — ПОЕХАЛИ! ПАРТИЯ НАЧАЛАСЬ!</b>',
         '',
-        `👥 <b>За столом:</b> ${players}`,
-        `🃏 Карты розданы. Первый ход: <b>${escapeHtml(firstPlayer)}</b>.`,
+        `👥 <b>Команда за столом:</b> ${players}`,
+        `🃏 Карты на руках! Первый ход за <b>${escapeHtml(firstPlayer)}</b> — покажи красивую игру!`,
         '',
-        'Открой Mini App по кнопке ниже. Каждый участник увидит только свои карты.',
+        'Открывай игровой стол по кнопке ниже — у каждого игрока будут только его карты. Удачи и красивых ходов!',
       ].join('\n'), {
         parse_mode: 'HTML',
         reply_markup: new InlineKeyboard().url('🃏 Открыть OPTIMIST DURAK', url),
       });
     } catch (error) {
       console.error('[telegram-bot] game started but group link could not be published:', error instanceof Error ? error.message : 'unknown');
-      await bot.api.sendMessage(lobby.chatId, 'Партия уже началась, но не удалось создать ссылку Mini App. Проверь BOT_USERNAME и APP_SHORT_NAME в настройках бота.').catch(() => {});
+      await bot.api.sendMessage(lobby.chatId, 'Партия уже началась, но ссылка на игровой стол не собралась. Проверь BOT_USERNAME и APP_SHORT_NAME в настройках бота.').catch(() => {});
     }
   }
 
@@ -246,14 +246,14 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     lobby.secondsLeft = Math.max(0, lobby.secondsLeft - LOBBY_REFRESH_SECONDS);
     const engine = getLobbyEngine(lobby);
     if (!engine) {
-      await closeLobby(lobby, 'Стол больше недоступен. Напишите /game, чтобы открыть новый.');
+      await closeLobby(lobby, 'Этот стол завершил работу. Напиши /game — и откроем новый, удача любит решительных!');
       return;
     }
     if (lobby.secondsLeft === 0) {
       if (engine.state.players.length >= 2) {
         await launchGroupGame(lobby);
       } else {
-        await closeLobby(lobby, 'Время ожидания вышло — для партии нужно минимум 2 игрока. Напишите /game, чтобы открыть новый стол.');
+        await closeLobby(lobby, 'Время сбора команды вышло. Для игры нужны хотя бы 2 игрока — напиши /game и позови друга!');
       }
       return;
     }
@@ -264,7 +264,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     const existingId = activeLobbyByChat.get(chatId);
     const existing = existingId ? activeLobbies.get(existingId) : undefined;
     if (existing?.status === 'OPEN') {
-      await bot.api.sendMessage(chatId, '♠️ Стол OPTIMIST уже собирает игроков — присоединяйся к сообщению выше.');
+      await bot.api.sendMessage(chatId, '♠️ Стол OPTIMIST уже собирает команду — присоединяйся к сообщению выше!');
       return;
     }
 
@@ -299,7 +299,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
   bot.command(['start', 'game', 'durak'], async (ctx) => {
     const telegramUser = ctx.from;
     if (!telegramUser) {
-      await ctx.reply('Не удалось определить Telegram-пользователя. Открой бота заново.');
+      await ctx.reply('Не удалось узнать игрока. Перезапусти бота — и снова в бой!');
       return;
     }
     const userId = String(telegramUser.id);
@@ -310,7 +310,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       const roomId = payload.slice('room_'.length);
       const room = rooms.getRoom(roomId);
       if (!room) {
-        await ctx.reply('Стол не найден или уже завершён. Создай новый стол через /start.');
+        await ctx.reply('Этот стол уже завершил партию или исчез. Создай новый через /start — впереди ещё игры!');
         return;
       }
       try {
@@ -318,7 +318,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
         onRoomChanged?.(roomId);
         const keyboard = new InlineKeyboard().webApp('🃏 Открыть OPTIMIST DURAK', miniAppUrl(webAppUrl, roomId));
         await ctx.reply(
-          `Ты за столом OPTIMIST DURAK. Игроков: ${snapshot.state.players.length}/${room.state.config.maxPlayers}.`,
+          `Ты в команде OPTIMIST DURAK! Игроков за столом: ${snapshot.state.players.length}/${room.state.config.maxPlayers}. Открывай игру — удача любит смелых!`,
           { reply_markup: keyboard },
         );
       } catch (error) {
@@ -333,7 +333,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
         .text('4 игрока', 'create_4').text('5 игроков', 'create_5').row()
         .text('6 игроков', 'create_6');
       await ctx.reply(
-        '♠️ <b>OPTIMIST DURAK</b> ♦️\n\nАвторская колода из 36 карт. Создай личный стол, пригласи друзей и сыграй в подкидного дурака.\n\nДля игры с компанией прямо в группе добавь бота в групповой чат и напиши там /game.\n\nВыбери размер личного стола:',
+        '♠️ <b>OPTIMIST DURAK</b> ♦️\n\n36 авторских карт, фирменная атмосфера и место для красивых побед! Создай личный стол, позови друзей и проверь, кому сегодня улыбается удача.\n\nХочешь сыграть всей компанией прямо в группе? Добавь бота в чат и напиши /game.\n\nСколько игроков соберём за столом?',
         { parse_mode: 'HTML', reply_markup: keyboard },
       );
       return;
@@ -343,11 +343,11 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       try {
         await openGroupLobby(ctx.chat.id, userId, username);
       } catch {
-        await ctx.reply('Не удалось открыть стол. Проверь, что бот может отправлять сообщения в этой группе.');
+        await ctx.reply('Не получилось открыть стол. Проверь, что бот может писать в этой группе, и попробуй ещё раз!');
       }
       return;
     }
-    await ctx.reply('Игровой стол можно открыть в личном чате с ботом или в группе.');
+    await ctx.reply('Стол OPTIMIST можно открыть в личном чате с ботом или прямо в группе. Выбирай компанию и начинай!');
   });
 
   for (const playerCount of [2, 3, 4, 5, 6]) {
@@ -358,13 +358,13 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       const { roomId } = rooms.createRoom(String(telegramUser.id), username, playerCount);
       const usernameFromApi = await getBotUsername();
       const inviteUrl = `https://t.me/${usernameFromApi}?start=room_${roomId}`;
-      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent('Залетай за стол OPTIMIST DURAK! 🃏')}`;
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent('Залетай за стол OPTIMIST DURAK! 36 карт и море азарта — погнали! 🃏')}`;
       const keyboard = new InlineKeyboard()
         .webApp('🃏 Открыть игровой стол', miniAppUrl(webAppUrl, roomId))
         .row()
         .url('📨 Пригласить друзей', shareUrl);
       await ctx.editMessageText(
-        `Стол OPTIMIST DURAK создан.\n\nКомната: ${roomId}\nМест за столом: ${playerCount}\n\nОтправь приглашение друзьям и открывай игру. Запустить партию сможет создатель после подключения минимум двух игроков.`,
+        `Стол OPTIMIST DURAK готов! 🚀\n\nКомната: ${roomId}\nМест за столом: ${playerCount}\n\nЗови друзей по приглашению и открывай игру. Когда за столом будет минимум 2 игрока, капитан сможет раздать карты и начать партию!`,
         { reply_markup: keyboard },
       );
     });
@@ -375,20 +375,20 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     const lobby = activeLobbies.get(roomId);
     const engine = rooms.getRoom(roomId);
     if (!lobby || lobby.status !== 'OPEN' || !engine || engine.state.phase !== 'WAITING_FOR_PLAYERS') {
-      await ctx.answerCallbackQuery({ text: 'Этот стол уже запущен или закрыт.', show_alert: true });
+      await ctx.answerCallbackQuery({ text: 'Этот стол уже начал игру или завершил сбор. Открой новый — и вперёд!', show_alert: true });
       return;
     }
     const userId = String(ctx.from.id);
     // joinRoom is intentionally idempotent, but repeated taps should not trigger
     // a misleading success toast or an unnecessary Telegram message edit.
     if (engine.state.players.some((player) => player.id === userId)) {
-      await ctx.answerCallbackQuery({ text: 'Ты уже за столом! Готовь козыри 😎' });
+      await ctx.answerCallbackQuery({ text: 'Ты уже в команде! Готовь козыри и хорошее настроение 😎' });
       return;
     }
     try {
       const result = await rooms.joinRoom(roomId, userId, displayName(ctx.from), true);
       onRoomChanged?.(roomId);
-      await ctx.answerCallbackQuery({ text: 'Ты в игре! 🔥' });
+      await ctx.answerCallbackQuery({ text: 'Ты за столом! Пусть начнётся красивая игра 🔥' });
       if (result.state.players.length >= MAX_GROUP_PLAYERS) {
         await launchGroupGame(lobby);
       } else {
@@ -407,7 +407,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     const lobby = activeLobbies.get(roomId);
     const engine = rooms.getRoom(roomId);
     if (!lobby || lobby.status !== 'OPEN' || !engine || engine.state.phase !== 'WAITING_FOR_PLAYERS') {
-      await ctx.answerCallbackQuery({ text: 'Партия уже идёт или стол закрыт.', show_alert: true });
+      await ctx.answerCallbackQuery({ text: 'Партия уже в движении или стол завершил сбор.', show_alert: true });
       return;
     }
     try {
@@ -415,11 +415,11 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       lobby.creatorId = result.ownerId ?? '';
       onRoomChanged?.(roomId);
       if (result.playerCount === 0) {
-        await ctx.answerCallbackQuery({ text: 'Ты вышел. Стол закрыт.' });
+        await ctx.answerCallbackQuery({ text: 'Ты покинул стол. Команда разошлась — в следующий раз соберём полный состав!' });
         await closeLobby(lobby, 'Все игроки разошлись, стол закрыт. Напишите /game для новой партии.');
         return;
       }
-      await ctx.answerCallbackQuery({ text: 'Ты вышел из-за стола.' });
+      await ctx.answerCallbackQuery({ text: 'Ты вышел из-за стола. Возвращайся, когда захочешь сыграть!' });
       await updateLobbyMessage(lobby);
     } catch (error) {
       await ctx.answerCallbackQuery({
@@ -438,14 +438,14 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       return;
     }
     if (String(ctx.from.id) !== lobby.creatorId) {
-      await ctx.answerCallbackQuery({ text: 'Запустить партию может только создатель стола 👑', show_alert: true });
+      await ctx.answerCallbackQuery({ text: 'Кнопка старта у капитана стола 👑', show_alert: true });
       return;
     }
     if (engine.state.players.length < 2) {
-      await ctx.answerCallbackQuery({ text: 'Нужно минимум 2 игрока для старта.', show_alert: true });
+      await ctx.answerCallbackQuery({ text: 'Позови ещё одного игрока — и можно раздавать карты!', show_alert: true });
       return;
     }
-    await ctx.answerCallbackQuery({ text: 'Раздаём карты! 🚀' });
+    await ctx.answerCallbackQuery({ text: 'Карты на раздачу — начинаем! 🚀' });
     await launchGroupGame(lobby);
   });
 
@@ -453,13 +453,13 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     await ctx.answerCallbackQuery();
     const chat = ctx.chat;
     if (!chat || !isGroup(chat)) {
-      await ctx.reply('Добавь бота в групповой чат и напиши /game.');
+      await ctx.reply('Добавь бота в групповой чат и напиши /game — соберём команду!');
       return;
     }
     try {
       await openGroupLobby(chat.id, String(ctx.from.id), displayName(ctx.from));
     } catch {
-      await ctx.reply('Не удалось открыть новый стол. Попробуй команду /game.');
+      await ctx.reply('Новый стол пока не открылся. Напиши /game — попробуем ещё раз!');
     }
   });
 
