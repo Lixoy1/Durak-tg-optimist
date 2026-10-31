@@ -15,6 +15,7 @@ export interface UserSettings {
   userId: string;
   trumpPosition: 'left' | 'right';
   soundEnabled: boolean;
+  tableTheme: 'emerald' | 'ruby' | 'night';
 }
 
 interface StoragePayload {
@@ -40,7 +41,8 @@ function validStats(value: unknown): value is PlayerStats {
 function validSettings(value: unknown): value is UserSettings {
   return isRecord(value) && typeof value.userId === 'string' &&
     (value.trumpPosition === 'left' || value.trumpPosition === 'right') &&
-    typeof value.soundEnabled === 'boolean';
+    typeof value.soundEnabled === 'boolean' &&
+    (value.tableTheme === undefined || value.tableTheme === 'emerald' || value.tableTheme === 'ruby' || value.tableTheme === 'night');
 }
 
 /** Synchronous JSON store. Writes use same-directory temp files followed by atomic rename. */
@@ -63,7 +65,7 @@ export class PersistentStore {
       }
       if (isRecord(parsed.settings)) {
         for (const [key, value] of Object.entries(parsed.settings)) {
-          if (validSettings(value)) this.settings.set(key, { ...value });
+          if (validSettings(value)) this.settings.set(key, { ...value, tableTheme: value.tableTheme ?? 'emerald' });
         }
       }
     } catch (error) {
@@ -140,10 +142,10 @@ export class PersistentStore {
   public getSettings(userId: string): UserSettings {
     this.assertOpen();
     const existing = this.settings.get(userId);
-    return existing ? { ...existing } : { userId, trumpPosition: 'right', soundEnabled: true };
+    return existing ? { ...existing } : { userId, trumpPosition: 'right', soundEnabled: true, tableTheme: 'emerald' };
   }
 
-  public saveSettings(userId: string, patch: { trumpPosition?: 'left' | 'right'; soundEnabled?: boolean }): UserSettings {
+  public saveSettings(userId: string, patch: { trumpPosition?: 'left' | 'right'; soundEnabled?: boolean; tableTheme?: 'emerald' | 'ruby' | 'night' }): UserSettings {
     this.assertOpen();
     if (!userId.trim()) throw new Error('userId must not be empty');
     const current = this.getSettings(userId);
@@ -151,6 +153,7 @@ export class PersistentStore {
       userId,
       trumpPosition: patch.trumpPosition ?? current.trumpPosition,
       soundEnabled: patch.soundEnabled ?? current.soundEnabled,
+      tableTheme: patch.tableTheme ?? current.tableTheme,
     };
     this.settings.set(userId, updated);
     this.flushToDisk();
