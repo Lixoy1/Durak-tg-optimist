@@ -163,7 +163,29 @@ export function createOptimistBackend(options: BackendOptions) {
         }
         const maxPlayers = typeof body.maxPlayers === 'number' ? Math.min(6, Math.max(2, body.maxPlayers)) : 2;
         const isPublic = body.isPublic !== false;
-        const created = rooms.createRoom(user.id, user.username, maxPlayers, { allowInviteJoin: true, isPublic });
+        const rawGameConfig = body.gameConfig === undefined ? {} : body.gameConfig;
+        if (!rawGameConfig || typeof rawGameConfig !== 'object' || Array.isArray(rawGameConfig)) {
+          throw new ProtocolError('INVALID_ROOM_CONFIG', 'gameConfig должен быть объектом настроек правил.');
+        }
+        const gameConfig = rawGameConfig as Record<string, unknown>;
+        if (gameConfig.firstBoutMaxCards !== undefined && gameConfig.firstBoutMaxCards !== 5 && gameConfig.firstBoutMaxCards !== 6) {
+          throw new ProtocolError('INVALID_ROOM_CONFIG', 'Лимит первого захода может быть только 5 или 6 карт.');
+        }
+        if (gameConfig.mode !== undefined && gameConfig.mode !== 'PODKIDNOY' && gameConfig.mode !== 'PEREVODNOY') {
+          throw new ProtocolError('INVALID_ROOM_CONFIG', 'Режим должен быть PODKIDNOY или PEREVODNOY.');
+        }
+        if (gameConfig.afterTake !== undefined && gameConfig.afterTake !== 'ATTACKER' && gameConfig.afterTake !== 'DEFENDER') {
+          throw new ProtocolError('INVALID_ROOM_CONFIG', 'Правило после взятия должно быть ATTACKER или DEFENDER.');
+        }
+        const created = rooms.createRoom(user.id, user.username, maxPlayers, {
+          allowInviteJoin: true,
+          isPublic,
+          gameConfig: {
+            firstBoutMaxCards: (gameConfig.firstBoutMaxCards as 5 | 6 | undefined) ?? 6,
+            mode: (gameConfig.mode as 'PODKIDNOY' | 'PEREVODNOY' | undefined) ?? 'PODKIDNOY',
+            afterTake: (gameConfig.afterTake as 'ATTACKER' | 'DEFENDER' | undefined) ?? 'ATTACKER',
+          },
+        });
         writeJson(res, 201, { roomId: created.roomId });
         return true;
       }
