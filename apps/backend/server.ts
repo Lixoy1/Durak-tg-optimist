@@ -428,8 +428,30 @@ export function createOptimistBackend(options: BackendOptions) {
   }
 
   function startBot(): void {
-    void bot.start({ onStart: (botInfo) => console.log(`[telegram-bot] @${botInfo.username} started`) })
-      .catch((error: unknown) => console.error('[telegram-bot] polling failed:', error instanceof Error ? error.message : 'unknown'));
+    void (async () => {
+      try {
+        // /start is commonly used by other game bots in shared groups.
+        // Publish a bot-specific /durak entry instead of competing for that command.
+        await bot.api.setMyCommands([
+          { command: 'durak', description: 'Открыть стол OPTIMIST в группе' },
+          { command: 'game', description: 'Собрать компанию за столом' },
+        ], { scope: { type: 'all_group_chats' } });
+        await bot.api.setMyCommands([
+          { command: 'start', description: 'Открыть OPTIMIST DURAK' },
+          { command: 'durak', description: 'Открыть OPTIMIST DURAK' },
+        ], { scope: { type: 'all_private_chats' } });
+        console.log('[telegram-bot] command menus registered for private and group chats');
+      } catch (error) {
+        // A command-menu update must never prevent the bot from polling updates.
+        console.warn('[telegram-bot] command menu registration failed:', error instanceof Error ? error.message : 'unknown');
+      }
+
+      try {
+        await bot.start({ onStart: (botInfo) => console.log(`[telegram-bot] @${botInfo.username} started`) });
+      } catch (error) {
+        console.error('[telegram-bot] polling failed:', error instanceof Error ? error.message : 'unknown');
+      }
+    })();
   }
 
   async function close(): Promise<void> {
