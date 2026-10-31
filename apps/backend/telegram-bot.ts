@@ -253,7 +253,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       if (engine.state.players.length >= 2) {
         await launchGroupGame(lobby);
       } else {
-        await closeLobby(lobby, 'Время сбора команды вышло. Для игры нужны хотя бы 2 игрока — напиши /game и позови друга!');
+        await closeLobby(lobby, 'Время сбора команды вышло. Для игры нужны хотя бы 2 игрока — напиши /durak и позови друга!');
       }
       return;
     }
@@ -416,7 +416,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       onRoomChanged?.(roomId);
       if (result.playerCount === 0) {
         await ctx.answerCallbackQuery({ text: 'Ты покинул стол. Команда разошлась — в следующий раз соберём полный состав!' });
-        await closeLobby(lobby, 'Все игроки разошлись, стол закрыт. Напишите /game для новой партии.');
+        await closeLobby(lobby, 'Все игроки разошлись, стол закрыт. Напишите /durak для новой партии.');
         return;
       }
       await ctx.answerCallbackQuery({ text: 'Ты вышел из-за стола. Возвращайся, когда захочешь сыграть!' });
@@ -453,7 +453,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     await ctx.answerCallbackQuery();
     const chat = ctx.chat;
     if (!chat || !isGroup(chat)) {
-      await ctx.reply('Добавь бота в групповой чат и напиши /game — соберём команду!');
+      await ctx.reply('Добавь бота в групповой чат и напиши /durak — соберём команду!');
       return;
     }
     try {
