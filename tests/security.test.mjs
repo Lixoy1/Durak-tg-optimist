@@ -124,7 +124,8 @@ test('spectator chat is isolated from player chat in both directions', async () 
 
   now += 801;
   await manager.sendChat(roomId, 'owner', 'Игроки на связи!');
-  assert.equal(manager.getSnapshot(roomId, 'owner').chatHistory.length, 2);
+  assert.equal(manager.getSnapshot(roomId, 'owner').chatHistory.length, 3);
+  assert.equal(manager.getSnapshot(roomId, 'owner').chatHistory.at(-1).text, 'Игроки на связи!');
   assert.equal(manager.getSnapshot(roomId, 'observer').spectatorChatHistory.length, 1);
   await assert.rejects(manager.sendChat(roomId, 'observer', 'Не игрок'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
   await assert.rejects(manager.sendSpectatorChat(roomId, 'owner', 'Не зритель'), (e) => e instanceof RoomError && e.code === 'SPECTATOR_ONLY');
