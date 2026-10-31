@@ -203,7 +203,7 @@ export class RoomManager {
   }
   public getLeaderboard(limit = 15): PlayerStats[] { return this.store.getLeaderboard(limit); }
   public getUserSettings(userId: string): UserSettings { return this.store.getSettings(userId); }
-  public updateUserSettings(userId: string, patch: { trumpPosition?: 'left' | 'right'; soundEnabled?: boolean }): UserSettings {
+  public updateUserSettings(userId: string, patch: { trumpPosition?: 'left' | 'right'; soundEnabled?: boolean; tableTheme?: 'emerald' | 'ruby' | 'night' }): UserSettings {
     return this.store.saveSettings(userId, patch);
   }
 
