@@ -757,7 +757,6 @@
     }));
     $('chatForm').addEventListener('submit', (event) => {
       event.preventDefault();
-      if (snapshot?.viewerRole === 'SPECTATOR') return;
       const input = $('chatInput'), message = input.value.trim();
       if (!message) return;
       const type = snapshot?.viewerRole === 'SPECTATOR' ? 'SEND_SPECTATOR_CHAT' : 'SEND_CHAT';
