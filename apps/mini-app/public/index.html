@@ -623,6 +623,7 @@
     $('trumpRightBtn').addEventListener('click', () => { trumpPosition = 'right'; syncSettingsButtons(); renderTableState(); void saveSettings({ trumpPosition }); });
     $('soundOnBtn').addEventListener('click', () => {
       soundEnabled = true;
+      pendingDealSound = false;
       syncSettingsButtons();
       void saveSettings({ soundEnabled });
       void unlockAudio().then((unlocked) => {
