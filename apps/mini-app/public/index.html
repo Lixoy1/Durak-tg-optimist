@@ -224,6 +224,12 @@
         playSound('defend');
       } else if (previous.table.length > 0 && next.table.length === 0) {
         playSound('clear');
+      } else if (
+        previous.activeThrowerId === authenticatedUserId &&
+        next.activeThrowerId !== authenticatedUserId &&
+        next.table.length > 0
+      ) {
+        playSound('pass');
       } else if (next.deckCount < previous.deckCount) {
         playSound('draw');
       } else if (
