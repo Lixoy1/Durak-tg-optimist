@@ -197,13 +197,17 @@ export function createOptimistBackend(options: BackendOptions) {
         if (body.soundEnabled !== undefined && typeof body.soundEnabled !== 'boolean') {
           throw new ProtocolError('INVALID_SETTINGS', 'soundEnabled должен быть логическим значением.');
         }
-        if (body.tableTheme !== undefined && body.tableTheme !== 'emerald' && body.tableTheme !== 'ruby' && body.tableTheme !== 'night') {
-          throw new ProtocolError('INVALID_SETTINGS', 'tableTheme должен быть emerald, ruby или night.');
+        if (body.tableTheme !== undefined && body.tableTheme !== 'emerald' && body.tableTheme !== 'ruby' && body.tableTheme !== 'night' && body.tableTheme !== 'light') {
+          throw new ProtocolError('INVALID_SETTINGS', 'tableTheme должен быть emerald, ruby, night или light.');
+        }
+        if (body.cardSize !== undefined && body.cardSize !== 'small' && body.cardSize !== 'normal' && body.cardSize !== 'large') {
+          throw new ProtocolError('INVALID_SETTINGS', 'cardSize должен быть small, normal или large.');
         }
         const settings = rooms.updateUserSettings(user.id, {
           ...(body.trumpPosition !== undefined ? { trumpPosition: body.trumpPosition } : {}),
           ...(body.soundEnabled !== undefined ? { soundEnabled: body.soundEnabled } : {}),
           ...(body.tableTheme !== undefined ? { tableTheme: body.tableTheme } : {}),
+          ...(body.cardSize !== undefined ? { cardSize: body.cardSize } : {}),
         });
         writeJson(res, 200, { settings });
         return true;
