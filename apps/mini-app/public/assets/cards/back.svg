@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="365" viewBox="0 0 250 365">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#202024"/>
+      <stop offset=".5" stop-color="#101114"/>
+      <stop offset="1" stop-color="#25211a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b99a58"/>
+      <stop offset=".48" stop-color="#80672f"/>
+      <stop offset="1" stop-color="#c5a96d"/>
+    </linearGradient>
+    <pattern id="engrave" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M12 1 23 12 12 23 1 12Z M12 6 18 12 12 18 6 12Z" fill="none" stroke="#9a7a3d" stroke-width=".65" opacity=".17"/>
+      <circle cx="12" cy="12" r="1.2" fill="#b4975e" opacity=".18"/>
+    </pattern>
+  </defs>
+  <rect width="250" height="365" rx="15" fill="#090a0c"/>
+  <rect x="5" y="5" width="240" height="355" rx="12" fill="url(#bg)" stroke="url(#gold)" stroke-width="2.4"/>
+  <rect x="12" y="12" width="226" height="341" rx="9" fill="url(#engrave)" stroke="#6d572d" stroke-width=".8"/>
+  <rect x="18" y="18" width="214" height="329" rx="7" fill="none" stroke="#b69758" stroke-width=".7" opacity=".55"/>
+  <g fill="none" stroke="url(#gold)" stroke-width="1.25" opacity=".72">
+    <path d="M25 65V25h40 M25 300v40h40 M225 65V25h-40 M225 300v40h-40"/>
+    <path d="M25 45h18M43 25v18M225 45h-18M207 25v18M25 320h18M43 340v-18M225 320h-18M207 340v-18"/>
+    <path d="M125 52 139 66 125 80 111 66Z M125 285 139 299 125 313 111 299Z"/>
+  </g>
+  <g transform="translate(125 176)" fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round">
+    <circle r="47" stroke-width="1.2" opacity=".42"/>
+    <circle r="39" stroke-width=".8" opacity=".55"/>
+    <path d="M-25 -15  -19 -2 -7 -11 0 2 9 -11 20 -2 26 -15" stroke-width="4.4"/>
+    <path d="M-28 -15h56l-5 9h-46Z" stroke-width="1.5"/>
+    <path d="M-21 13 Q0 33 21 13" stroke-width="3.2"/>
+    <circle cx="-14" cy="3" r="2.2" fill="#9c8048" stroke="none"/>
+    <circle cx="14" cy="3" r="2.2" fill="#9c8048" stroke="none"/>
+    <path d="M-31 -34 0 -48 31 -34 M-31 34 0 48 31 34" stroke-width="1" opacity=".55"/>
+  </g>
+  <text x="125" y="247" text-anchor="middle" fill="#b99a58" font-family="Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="3.2">OPTIMIST</text>
+  <path d="M77 258h96" stroke="#80672f" stroke-width=".9"/>
+  <text x="125" y="276" text-anchor="middle" fill="#806c43" font-family="Arial, sans-serif" font-size="8.5" font-weight="600" letter-spacing="3.4">DURAK</text>
+  <g fill="#a88a4d" opacity=".65">
+    <path d="M34 88c9-11 18-11 27 0-9 11-18 11-27 0Z"/>
+    <path d="M189 277c9-11 18-11 27 0-9 11-18 11-27 0Z"/>
+  </g>
+</svg>
