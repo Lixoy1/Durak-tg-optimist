@@ -63,7 +63,6 @@ export interface CreateRoomOptions {
 
 export type GameOverHandler = (state: GameState) => void | Promise<void>;
 export type RoomChangeListener = (roomId: string) => void;
-export type PlayerConnectedListener = (roomId: string, playerId: string) => void;
 
 export const AI_PLAYER_ID = 'ai_optimist';
 const AI_PLAYER_NAME = 'Север (ИИ)';
@@ -111,7 +110,6 @@ export class RoomManager {
   private readonly aiDelayMs: number;
   public readonly store: PersistentStore;
   private onRoomChanged: RoomChangeListener | null = null;
-  private onPlayerConnected: PlayerConnectedListener | null = null;
 
   constructor(now: () => number = Date.now, store = new PersistentStore(), aiDelayMs = 350) {
     if (!Number.isFinite(aiDelayMs) || aiDelayMs < 0 || aiDelayMs > 10_000) {
@@ -124,17 +122,6 @@ export class RoomManager {
 
   public setRoomChangeListener(listener: RoomChangeListener): void {
     this.onRoomChanged = listener;
-  }
-
-  public setPlayerConnectedListener(listener: PlayerConnectedListener | null): void {
-    this.onPlayerConnected = listener;
-  }
-
-  /** Notify integrations after a verified player has opened a room. */
-  public notifyPlayerConnected(roomId: string, playerId: string): void {
-    const room = this.rooms.get(roomId);
-    if (!room || !room.engine.state.players.some((player) => player.id === playerId)) return;
-    this.onPlayerConnected?.(roomId, playerId);
   }
 
   public createRoom(
