@@ -156,18 +156,46 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
       .sort((a, b) => (a.finishOrder ?? Number.MAX_SAFE_INTEGER) - (b.finishOrder ?? Number.MAX_SAFE_INTEGER));
     const loser = state.players.find((player) => player.id === state.loserId)
       ?? state.players.find((player) => player.status === 'LOSER_DURAK');
-    const lines = ['<b>🏆 OPTIMIST — ИТОГИ БИТВЫ</b>', '', `🃏 Стол <code>${escapeHtml(state.roomId)}</code>`, ''];
+    const lines = [
+      '<b>🏆✨ OPTIMIST DURAK — ФИНАЛЬНЫЙ СВИСТОК! ✨🏆</b>',
+      '',
+      '━━━━━━━━━━━━━━━━━━',
+      '<b>РЕЗУЛЬТАТЫ ПАРТИИ</b>',
+      '',
+    ];
     winners.forEach((player, index) => {
-      const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '✨';
+      const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🌟';
       lines.push(`${medal} <b>${escapeHtml(player.username)}</b> — место ${player.finishOrder ?? index + 1}`);
     });
     lines.push('');
     if (loser) {
-      lines.push(`🃏 <b>Хранитель Колоды:</b> ${escapeHtml(loser.username)}\n<i>Сегодня колода решила пошутить. Реванш уже рядом!</i>`);
+      lines.push(
+        `🃏 <b>ХРАНИТЕЛЬ КОЛОДЫ: ${escapeHtml(loser.username)}</b>`,
+        '<i>Колода сегодня выбрала своего героя. Не грусти — реванш уже точит козыри! 😎</i>',
+      );
     } else {
-      lines.push('🤝 <b>Ничья? Значит, победила дружба и красивая игра!</b>');
+      lines.push('🤝 <b>Ничья! Сегодня победили дружба и красивый азарт.</b>');
     }
-    lines.push('', 'Отличная партия! Готовы повторить? Новый стол уже ждёт!');
+
+    lines.push('', '━━━━━━━━━━━━━━━━━━', '<b>📊 ЛИЧНАЯ ЛЕТОПИСЬ</b>');
+    for (const player of state.players) {
+      if (player.id === 'ai_optimist') continue;
+      const stats = rooms.getProfile(player.id, player.username);
+      lines.push(
+        `• <b>${escapeHtml(player.username)}</b>: ${stats.games} игр · 🏆 ${stats.wins} побед · 🤡 ${stats.losses} раз был дураком`,
+      );
+    }
+
+    const durakTop = rooms.getDurakLeaderboard(3);
+    if (durakTop.length) {
+      lines.push('', '━━━━━━━━━━━━━━━━━━', '<b>🤡 ЗАЛ СЛАВЫ ХРАНИТЕЛЕЙ КОЛОДЫ</b>');
+      durakTop.forEach((player, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+        lines.push(`${medal} ${escapeHtml(player.username)} — ${player.losses} раз`);
+      });
+    }
+
+    lines.push('', '🔥 Отличная битва, команда! Кто готов на реванш?');
     await bot.api.sendMessage(chatId, lines.join('\n'), {
       parse_mode: 'HTML',
       reply_markup: new InlineKeyboard().text('🔄 Новый стол', 'new_table'),
