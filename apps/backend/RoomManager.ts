@@ -86,11 +86,9 @@ interface RoomRecord {
   aiTask: AiQueueTask | null;
   createdAt: number;
   chat: ChatMessage[];
-  spectatorChat: ChatMessage[];
   queue: Promise<void>;
   idempotency: Map<string, { fingerprint: string; resultVersion: number }>;
   lastChatAt: Map<string, number>;
-  lastSpectatorChatAt: Map<string, number>;
   lastReactionAt: Map<string, number>;
   lastEffectAt: Map<string, number>;
 }
@@ -147,11 +145,9 @@ export class RoomManager {
       aiTask: null,
       createdAt: this.now(),
       chat: [],
-      spectatorChat: [],
       queue: Promise.resolve(),
       idempotency: new Map(),
       lastChatAt: new Map(),
-      lastSpectatorChatAt: new Map(),
       lastReactionAt: new Map(),
       lastEffectAt: new Map(),
     };
@@ -532,12 +528,6 @@ export class RoomManager {
   private assertCanView(room: RoomRecord, viewerId: string): void {
     const isPlayer = room.engine.state.players.some((player) => player.id === viewerId);
     if (!isPlayer && !room.spectators.has(viewerId)) throw new RoomError('NOT_A_MEMBER', 'У тебя нет доступа к этому столу.');
-  }
-
-  private assertSpectator(room: RoomRecord, viewerId: string): void {
-    if (!room.spectators.has(viewerId) || room.engine.state.players.some((player) => player.id === viewerId)) {
-      throw new RoomError('SPECTATOR_ONLY', 'Отдельный чат открыт только для наблюдателей.');
-    }
   }
 
   private snapshot(roomId: string, viewerId: string): RoomSnapshot {
