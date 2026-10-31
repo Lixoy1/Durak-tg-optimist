@@ -30,11 +30,13 @@ test('all 36 engine card paths resolve to real WebP assets', () => {
   assert.equal(seen.size, 36);
 });
 
-test('OPTIMIST joker design is installed as the separate card back', () => {
-  const back = resolve(root, 'assets/cards/back.webp');
+test('subdued matte-gold card back is installed and used by the Mini App', () => {
+  const back = resolve(root, 'assets/cards/back.svg');
   assert.ok(existsSync(back));
-  assert.ok(statSync(back).size > 10_000);
-  assert.equal(readFileSync(back).subarray(0, 4).toString('hex'), '52494646');
+  const svg = readFileSync(back, 'utf8');
+  assert.match(svg, /<svg/);
+  assert.match(svg, /OPTIMIST/);
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
-  assert.match(html, /src="\/assets\/cards\/back\.webp"/);
-});
+  assert.match(html, /class="deck-back" src="\\/assets\\/cards\\/back\\.svg"/);
+  assert.match(html, /id="sideDeckBack" class="side-deck-back" src="\\/assets\\/cards\\/back\\.svg"/);
+});;
