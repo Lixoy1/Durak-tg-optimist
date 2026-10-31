@@ -136,6 +136,34 @@ test('does not allow PASS before the first attack', () => {
   assert.equal(engine.state.table.length, 0);
 });
 
+test('explains an invalid defense using Russian card names', () => {
+  const engine = makeEngine(2);
+  const allCards = [...engine.state.deck, ...engine.state.players.flatMap((player) => player.hand)];
+  const attack = allCards.find((card) => card.suit === 'hearts' && card.rank === 13);
+  const defense = allCards.find((card) => card.suit === 'hearts' && card.rank === 10);
+  assert.ok(attack);
+  assert.ok(defense);
+
+  const defender = engine.state.players[engine.state.defenderIndex];
+  engine.state.deck = allCards.filter((card) => card.id !== attack.id && card.id !== defense.id);
+  for (const player of engine.state.players) player.hand = [];
+  defender.hand = [defense];
+  engine.state.table = [{ attack, defense: null }];
+
+  assert.throws(
+    () => engine.dispatch({
+      type: 'DEFEND',
+      playerId: defender.id,
+      attackIndex: 0,
+      cardId: defense.id,
+      expectedVersion: engine.state.version,
+    }),
+    (error) => error instanceof GameRuleError
+      && error.code === 'CANNOT_BEAT'
+      && error.message === '10 червей не побьёт короля червей. Нужна карта старше той же масти или козырь.',
+  );
+});
+
 test('allows same-suit higher card and trump to beat non-trump, but not the reverse', () => {
   const engine = makeEngine(2);
   const trump = engine.state.trumpSuit;
