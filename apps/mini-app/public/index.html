@@ -251,24 +251,35 @@
         if (extraClass) fallback.classList.add(extraClass);
         return fallback;
       }
+
       const frame = document.createElement('div');
       frame.className = `card-frame ${extraClass}`.trim();
-      const label = document.createElement('div');
-      label.className = 'card-skeleton-label';
-      label.style.color = suitColor(card.suit);
-      label.textContent = `${rankLabel(card.rank)}${suitGlyph(card.suit)}`;
-      frame.append(label);
+
+      // The centered rank/suit label is only a loading placeholder.
+      // Never leave it on top of the original card artwork after the image loads.
+      const label = decodedSet.has(url) ? null : document.createElement('div');
+      if (label) {
+        label.className = 'card-skeleton-label';
+        label.style.color = suitColor(card.suit);
+        label.textContent = `${rankLabel(card.rank)}${suitGlyph(card.suit)}`;
+        frame.append(label);
+      }
+
       const img = document.createElement('img');
       img.className = `playing-card${decodedSet.has(url) ? ' ready' : ''}`;
-      img.src = url;
       img.alt = `${rankLabel(card.rank)} ${suitGlyph(card.suit)}`;
-      img.onload = () => { decodedSet.add(url); img.classList.add('ready'); };
+      img.onload = () => {
+        decodedSet.add(url);
+        img.classList.add('ready');
+        label?.remove();
+      };
       img.onerror = () => {
         failedSet.add(url);
         const fallback = fallbackCard(card);
         if (extraClass) fallback.classList.add(extraClass);
         frame.replaceWith(fallback);
       };
+      img.src = url;
       frame.append(img);
       return frame;
     }
