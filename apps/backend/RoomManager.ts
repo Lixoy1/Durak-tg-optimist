@@ -10,7 +10,7 @@ export interface ChatMessage {
   senderId: string;
   senderName: string;
   senderType: 'PLAYER' | 'SPECTATOR' | 'SYSTEM';
-  channel: 'PLAYERS' | 'SPECTATORS';
+  channel: 'ROOM';
   text: string;
   timestamp: number;
 }
@@ -354,33 +354,26 @@ export class RoomManager {
     });
   }
 
-  public async sendChat(roomId: string, playerId: string, text: string): Promise<ChatMessage> {
+  public async sendChat(roomId: string, senderId: string, text: string): Promise<ChatMessage> {
     return this.withLock(roomId, (room) => {
-      this.assertMember(room, playerId);
+      this.assertCanView(room, senderId);
       const clean = typeof text === 'string' ? text.trim() : '';
       if (!clean) throw new RoomError('EMPTY_MESSAGE', 'Сообщение не должно быть пустым.');
       if (clean.length > 200) throw new RoomError('MESSAGE_TOO_LONG', 'Сообщение должно быть не длиннее 200 символов.');
       const now = this.now();
-      const last = room.lastChatAt.get(playerId) ?? 0;
+      const last = room.lastChatAt.get(senderId) ?? 0;
       if (now - last < 800) throw new RoomError('RATE_LIMIT', 'Не торопись — даже у самого яркого хода есть свой момент. Подожди секунду!');
-      room.lastChatAt.set(playerId, now);
-      const player = room.engine.state.players.find((entry) => entry.id === playerId)!;
-      return this.appendChat(room, playerId, clean, 'PLAYER', player.username, 'PLAYERS');
+      room.lastChatAt.set(senderId, now);
+      const player = room.engine.state.players.find((entry) => entry.id === senderId);
+      const isPlayer = Boolean(player);
+      const senderName = player?.username ?? room.spectatorNames.get(senderId) ?? 'Зритель';
+      return this.appendChat(room, senderId, clean, isPlayer ? 'PLAYER' : 'SPECTATOR', senderName, 'ROOM');
     });
   }
 
+  /** Backwards-compatible alias: observers now use the same room chat as players. */
   public async sendSpectatorChat(roomId: string, spectatorId: string, text: string): Promise<ChatMessage> {
-    return this.withLock(roomId, (room) => {
-      this.assertSpectator(room, spectatorId);
-      const clean = typeof text === 'string' ? text.trim() : '';
-      if (!clean) throw new RoomError('EMPTY_MESSAGE', 'Сообщение не должно быть пустым.');
-      if (clean.length > 200) throw new RoomError('MESSAGE_TOO_LONG', 'Сообщение должно быть не длиннее 200 символов.');
-      const now = this.now();
-      const last = room.lastSpectatorChatAt.get(spectatorId) ?? 0;
-      if (now - last < 800) throw new RoomError('RATE_LIMIT', 'Секунду, зрительская трибуна ещё аплодирует предыдущему сообщению!');
-      room.lastSpectatorChatAt.set(spectatorId, now);
-      return this.appendChat(room, spectatorId, clean, 'SPECTATOR', room.spectatorNames.get(spectatorId) ?? 'Зритель', 'SPECTATORS');
-    });
+    return this.sendChat(roomId, spectatorId, text);
   }
 
   public async sendReaction(roomId: string, senderId: string, reaction: RoomReaction['reaction']): Promise<RoomReaction> {
@@ -553,8 +546,8 @@ export class RoomManager {
     const isPlayer = room.engine.state.players.some((player) => player.id === viewerId);
     return {
       state: room.engine.getPublicStateForPlayer(isPlayer ? viewerId : '__SPECTATOR__'),
-      chatHistory: isPlayer ? room.chat.map((message) => ({ ...message })) : [],
-      spectatorChatHistory: isPlayer ? [] : room.spectatorChat.map((message) => ({ ...message })),
+      chatHistory: room.chat.map((message) => ({ ...message })),
+      spectatorChatHistory: room.chat.map((message) => ({ ...message })),
       ownerId: room.ownerId,
       viewerRole: isPlayer ? 'PLAYER' : 'SPECTATOR',
       spectatorCount: room.spectators.size,
@@ -580,9 +573,8 @@ export class RoomManager {
       text,
       timestamp: this.now(),
     };
-    const target = channel === 'SPECTATORS' ? room.spectatorChat : room.chat;
-    target.push(message);
-    if (target.length > 50) target.splice(0, target.length - 50);
+    room.chat.push(message);
+    if (room.chat.length > 50) room.chat.splice(0, room.chat.length - 50);
     return message;
   }
 }
