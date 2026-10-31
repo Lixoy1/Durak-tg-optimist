@@ -15,7 +15,8 @@ export interface UserSettings {
   userId: string;
   trumpPosition: 'left' | 'right';
   soundEnabled: boolean;
-  tableTheme: 'emerald' | 'ruby' | 'night';
+  tableTheme: 'emerald' | 'ruby' | 'night' | 'light';
+  cardSize: 'small' | 'normal' | 'large';
 }
 
 interface StoragePayload {
@@ -42,7 +43,8 @@ function validSettings(value: unknown): value is UserSettings {
   return isRecord(value) && typeof value.userId === 'string' &&
     (value.trumpPosition === 'left' || value.trumpPosition === 'right') &&
     typeof value.soundEnabled === 'boolean' &&
-    (value.tableTheme === undefined || value.tableTheme === 'emerald' || value.tableTheme === 'ruby' || value.tableTheme === 'night');
+    (value.tableTheme === undefined || value.tableTheme === 'emerald' || value.tableTheme === 'ruby' || value.tableTheme === 'night' || value.tableTheme === 'light') &&
+    (value.cardSize === undefined || value.cardSize === 'small' || value.cardSize === 'normal' || value.cardSize === 'large');
 }
 
 /** Synchronous JSON store. Writes use same-directory temp files followed by atomic rename. */
@@ -65,7 +67,7 @@ export class PersistentStore {
       }
       if (isRecord(parsed.settings)) {
         for (const [key, value] of Object.entries(parsed.settings)) {
-          if (validSettings(value)) this.settings.set(key, { ...value, tableTheme: value.tableTheme ?? 'emerald' });
+          if (validSettings(value)) this.settings.set(key, { ...value, tableTheme: value.tableTheme ?? 'emerald', cardSize: value.cardSize ?? 'normal' });
         }
       }
     } catch (error) {
@@ -142,10 +144,10 @@ export class PersistentStore {
   public getSettings(userId: string): UserSettings {
     this.assertOpen();
     const existing = this.settings.get(userId);
-    return existing ? { ...existing } : { userId, trumpPosition: 'right', soundEnabled: true, tableTheme: 'emerald' };
+    return existing ? { ...existing } : { userId, trumpPosition: 'right', soundEnabled: true, tableTheme: 'emerald', cardSize: 'normal' };
   }
 
-  public saveSettings(userId: string, patch: { trumpPosition?: 'left' | 'right'; soundEnabled?: boolean; tableTheme?: 'emerald' | 'ruby' | 'night' }): UserSettings {
+  public saveSettings(userId: string, patch: { trumpPosition?: 'left' | 'right'; soundEnabled?: boolean; tableTheme?: 'emerald' | 'ruby' | 'night' | 'light'; cardSize?: 'small' | 'normal' | 'large' }): UserSettings {
     this.assertOpen();
     if (!userId.trim()) throw new Error('userId must not be empty');
     const current = this.getSettings(userId);
@@ -154,6 +156,7 @@ export class PersistentStore {
       trumpPosition: patch.trumpPosition ?? current.trumpPosition,
       soundEnabled: patch.soundEnabled ?? current.soundEnabled,
       tableTheme: patch.tableTheme ?? current.tableTheme,
+      cardSize: patch.cardSize ?? current.cardSize,
     };
     this.settings.set(userId, updated);
     this.flushToDisk();
