@@ -1,6 +1,6 @@
 # OPTIMIST DURAK — Engine, Security, and Telegram Integration
 
-This is the current OPTIMIST DURAK prototype: a server-authoritative Durak engine, Telegram bot, in-memory room manager, authenticated WebSocket gateway, Telegram Mini App, the 36 custom WebP card faces, and the separate OPTIMIST card back. Group lobbies and 2–6-player games are supported. Room/chat history is still in memory; PostgreSQL persistence is not implemented yet.
+This is the current OPTIMIST DURAK prototype: a server-authoritative Durak engine, Telegram bot, in-memory room manager, authenticated WebSocket gateway, Telegram Mini App, the 36 custom WebP card faces, and the subdued OPTIMIST deck back. Group lobbies and 2–6-player games are supported. Room/chat history is still in memory; PostgreSQL persistence is not implemented yet.
 
 ## Requirements
 
@@ -31,7 +31,7 @@ npm run simulate
 
 ## Assets
 
-The 36 custom WebP faces and the separate OPTIMIST card back are already included in `apps/mini-app/public/assets/cards/`. The engine uses `J`, `Q`, `K`, `A` file names for ranks 11–14.
+The 36 custom WebP faces and the subdued OPTIMIST deck back (`back.svg`) are included in `apps/mini-app/public/assets/cards/`. The engine uses `J`, `Q`, `K`, `A` file names for ranks 11–14.
 
 ## Security layer (stage 2)
 
@@ -52,7 +52,7 @@ This stage adds a runnable single-process integration: `apps/backend/server.ts` 
 6. In a private chat, use `/start` to create a personal room and invite players. For a group game, add the bot to a group and send `/durak` (or `/game`). Prefer `/durak` in groups with other game bots because `/start` is commonly used by those bots. On startup the bot registers `/durak` and `/game` in Telegram's group command menu. Join from the lobby message. The lobby stays open for 60 seconds, updates every 15 seconds, lets the creator start with 2–6 players, and auto-starts when full or when the countdown expires with at least two participants.
 7. In `@BotFather`, create a Mini App using `/newapp` and set its short name to `game` (or change `APP_SHORT_NAME`). Set `BOT_USERNAME` to the actual bot username, or leave it blank to let the server resolve it through Telegram. After a group game starts, the group button opens `https://t.me/<bot>?start=room_<id>`. The bot then sends each already-registered participant a native Web App button whose URL contains the same `roomId`; both participants therefore enter the same in-memory room. Group rooms reject users who did not join from the lobby message. This avoids relying on a configured Direct Mini App short name for group entry.
 
-The server and Mini App expect the 36 final card files under `apps/mini-app/public/assets/cards/{clubs,spades,diamonds,hearts}/` using filenames `6.webp`, `7.webp`, `8.webp`, `9.webp`, `10.webp`, `J.webp`, `Q.webp`, `K.webp`, and `A.webp`; put the designed back at `apps/mini-app/public/assets/cards/back.webp`. If a face image is missing, the starter UI falls back to a readable rank-and-suit tile. The 36 custom WebP card faces and the separate OPTIMIST card back are included in `apps/mini-app/public/assets/cards/`. Automated tests verify every expected asset path and the card-back file signature.
+The server and Mini App expect the 36 final card files under `apps/mini-app/public/assets/cards/{clubs,spades,diamonds,hearts}/` using filenames `6.webp`, `7.webp`, `8.webp`, `9.webp`, `10.webp`, `J.webp`, `Q.webp`, `K.webp`, and `A.webp`; the subdued default back is `apps/mini-app/public/assets/cards/back.svg`. If a face image is missing, the starter UI falls back to a readable rank-and-suit tile. The 36 custom WebP card faces and the separate OPTIMIST card back are included in `apps/mini-app/public/assets/cards/`. Automated tests verify every expected asset path and the card-back file signature.
 
 ### Current limits
 
