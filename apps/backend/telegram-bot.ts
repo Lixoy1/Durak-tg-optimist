@@ -56,6 +56,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
   const bot = new Bot(token);
   const activeLobbies = new Map<string, GroupLobby>();
   const activeLobbyByChat = new Map<number, string>();
+  const startedGroupLobbies = new Map<string, { lobby: GroupLobby; waitingFor: Set<string> }>();
   let botUsername = options.botUsername?.replace(/^@/, '').trim() || '';
   const appShortName = options.appShortName?.trim() || 'game';
 
@@ -77,6 +78,24 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
   function getLobbyEngine(lobby: GroupLobby) {
     return rooms.getRoom(lobby.roomId);
   }
+
+  async function deleteGroupMessage(chatId: number, messageId: number): Promise<void> {
+    try {
+      await bot.api.deleteMessage(chatId, messageId);
+    } catch (error) {
+      console.warn('[telegram-bot] could not delete group message; check can_delete_messages permission:',
+        error instanceof Error ? error.message : 'unknown');
+    }
+  }
+
+  rooms.setPlayerConnectedListener((roomId, playerId) => {
+    const pending = startedGroupLobbies.get(roomId);
+    if (!pending || !pending.waitingFor.delete(playerId)) return;
+    if (pending.waitingFor.size === 0) {
+      startedGroupLobbies.delete(roomId);
+      void deleteGroupMessage(pending.lobby.chatId, pending.lobby.messageId);
+    }
+  });
 
   function renderLobbyText(lobby: GroupLobby): string {
     const engine = getLobbyEngine(lobby);
@@ -196,8 +215,14 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     }
 
     lobby.status = 'STARTED';
+    startedGroupLobbies.set(lobby.roomId, {
+      lobby,
+      waitingFor: new Set(startedEngine.state.players.map((player) => player.id)),
+    });
     removeLobbyIndexes(lobby);
     rooms.setGameOverHandler(lobby.roomId, async (finalState) => {
+      startedGroupLobbies.delete(lobby.roomId);
+      await deleteGroupMessage(lobby.chatId, lobby.messageId);
       try {
         await announceGameResult(lobby.chatId, finalState);
       } catch (error) {
@@ -264,7 +289,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     const existingId = activeLobbyByChat.get(chatId);
     const existing = existingId ? activeLobbies.get(existingId) : undefined;
     if (existing?.status === 'OPEN') {
-      await bot.api.sendMessage(chatId, '♠️ Стол OPTIMIST уже собирает команду — присоединяйся к сообщению выше!');
+      await updateLobbyMessage(existing);
       return;
     }
 
@@ -342,6 +367,11 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     if (isGroup(ctx.chat)) {
       try {
         await openGroupLobby(ctx.chat.id, userId, username);
+        // Remove the command itself after handling it; the bot's lobby message remains as the game entry point.
+        await ctx.deleteMessage().catch((error: unknown) => {
+          console.warn('[telegram-bot] could not delete group command; grant the bot can_delete_messages:',
+            error instanceof Error ? error.message : 'unknown');
+        });
       } catch {
         await ctx.reply('Не получилось открыть стол. Проверь, что бот может писать в этой группе, и попробуй ещё раз!');
       }
