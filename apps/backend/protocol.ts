@@ -4,7 +4,10 @@ export type ClientMessage =
   | { type: 'AUTH'; roomId: string; initData: string; mode?: 'play' | 'spectate' }
   | { type: 'START_GAME' }
   | { type: 'GAME_ACTION'; commandId: string; action: GameActionInput }
-  | { type: 'SEND_CHAT'; text: string };
+  | { type: 'SEND_CHAT'; text: string }
+  | { type: 'SEND_SPECTATOR_CHAT'; text: string }
+  | { type: 'SEND_REACTION'; reaction: '🔥' | '😎' | '😂' | '💀' | '👑' | '🤡' | '👏' | '🙈' }
+  | { type: 'SEND_TABLE_EFFECT'; effect: 'curse' | 'buff' | 'lightning' | 'phoenix' };
 
 export class ProtocolError extends Error {
   public readonly code: string;
@@ -39,9 +42,23 @@ export function parseClientMessage(raw: string | Uint8Array): ClientMessage {
     };
   }
   if (msg.type === 'START_GAME') return { type: 'START_GAME' };
-  if (msg.type === 'SEND_CHAT') {
+  if (msg.type === 'SEND_CHAT' || msg.type === 'SEND_SPECTATOR_CHAT') {
     if (typeof msg.text !== 'string' || msg.text.length > 200) throw new ProtocolError('INVALID_CHAT', 'Сообщение должно содержать не более 200 символов.');
-    return { type: 'SEND_CHAT', text: msg.text };
+    return { type: msg.type, text: msg.text };
+  }
+  if (msg.type === 'SEND_REACTION') {
+    const allowed = ['🔥', '😎', '😂', '💀', '👑', '🤡', '👏', '🙈'] as const;
+    if (typeof msg.reaction !== 'string' || !allowed.includes(msg.reaction as typeof allowed[number])) {
+      throw new ProtocolError('INVALID_REACTION', 'Недопустимая реакция.');
+    }
+    return { type: 'SEND_REACTION', reaction: msg.reaction as typeof allowed[number] };
+  }
+  if (msg.type === 'SEND_TABLE_EFFECT') {
+    const allowed = ['curse', 'buff', 'lightning', 'phoenix'] as const;
+    if (typeof msg.effect !== 'string' || !allowed.includes(msg.effect as typeof allowed[number])) {
+      throw new ProtocolError('INVALID_TABLE_EFFECT', 'Недопустимый визуальный эффект.');
+    }
+    return { type: 'SEND_TABLE_EFFECT', effect: msg.effect as typeof allowed[number] };
   }
   if (msg.type === 'GAME_ACTION') {
     if (typeof msg.commandId !== 'string' || !/^[\w-]{8,100}$/.test(msg.commandId)) throw new ProtocolError('INVALID_COMMAND_ID', 'Некорректный идентификатор команды.');
