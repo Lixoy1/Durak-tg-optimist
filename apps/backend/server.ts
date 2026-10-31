@@ -301,7 +301,7 @@ export function createOptimistBackend(options: BackendOptions) {
       const isMember = engine.state.players.some((player) => player.id === user.id);
       if (!isMember) {
         if (msg.mode === 'spectate') {
-          await rooms.spectateRoom(msg.roomId, user.id);
+          await rooms.spectateRoom(msg.roomId, user.id, user.username);
           session.viewerRole = 'SPECTATOR';
         } else {
           if (!rooms.canJoinByInvite(msg.roomId) && !rooms.isPublicRoom(msg.roomId)) {
