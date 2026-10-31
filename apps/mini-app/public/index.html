@@ -134,6 +134,112 @@
       showToast.timer = setTimeout(() => { el.style.display = 'none'; }, 2800);
     }
 
+    // Lightweight game sound engine. AudioContext is unlocked by the first
+    // real user gesture, as required by mobile browsers and Telegram WebView.
+    let audioContext = null;
+    let pendingDealSound = false;
+
+    async function unlockAudio() {
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) return false;
+      try {
+        if (!audioContext) audioContext = new AudioContextCtor();
+        if (audioContext.state !== 'running') await audioContext.resume();
+        return audioContext.state === 'running';
+      } catch {
+        return false;
+      }
+    }
+
+    function playSoundNow(kind) {
+      if (!soundEnabled || !audioContext || audioContext.state !== 'running') return;
+      const patterns = {
+        toggleOn: [[660, 0, 0.09, 'sine', 0.035], [880, 0.09, 0.12, 'sine', 0.04]],
+        deal: [[392, 0, 0.09, 'triangle', 0.035], [523, 0.09, 0.1, 'triangle', 0.04], [659, 0.19, 0.13, 'sine', 0.04]],
+        attack: [[420, 0, 0.075, 'triangle', 0.045, 275], [310, 0.055, 0.085, 'sine', 0.028, 240]],
+        defend: [[520, 0, 0.08, 'triangle', 0.04, 700], [760, 0.075, 0.12, 'sine', 0.035, 920]],
+        take: [[280, 0, 0.14, 'triangle', 0.05, 205], [205, 0.13, 0.18, 'sine', 0.045, 145]],
+        pass: [[460, 0, 0.075, 'sine', 0.03], [620, 0.075, 0.08, 'triangle', 0.035], [820, 0.15, 0.12, 'sine', 0.04]],
+        clear: [[520, 0, 0.08, 'triangle', 0.035], [690, 0.08, 0.1, 'triangle', 0.04]],
+        draw: [[820, 0, 0.055, 'sine', 0.028], [610, 0.065, 0.07, 'sine', 0.025]],
+        turn: [[587, 0, 0.08, 'sine', 0.032], [784, 0.1, 0.1, 'sine', 0.038]],
+        victory: [[523, 0, 0.14, 'triangle', 0.04], [659, 0.13, 0.14, 'triangle', 0.042], [784, 0.26, 0.16, 'sine', 0.045], [1047, 0.42, 0.24, 'sine', 0.045]],
+        defeat: [[392, 0, 0.14, 'triangle', 0.035, 330], [330, 0.14, 0.17, 'triangle', 0.035, 262], [262, 0.31, 0.22, 'sine', 0.03, 196]],
+      };
+      const notes = patterns[kind];
+      if (!notes) return;
+      const startAt = audioContext.currentTime + 0.012;
+      for (const [frequency, offset, duration, wave, volume, glideTo] of notes) {
+        const oscillator = audioContext.createOscillator();
+        const envelope = audioContext.createGain();
+        const startAtNote = startAt + offset;
+        const endAt = startAtNote + duration;
+        oscillator.type = wave;
+        oscillator.frequency.setValueAtTime(frequency, startAtNote);
+        if (glideTo) oscillator.frequency.linearRampToValueAtTime(glideTo, endAt);
+        envelope.gain.setValueAtTime(0.0001, startAtNote);
+        envelope.gain.exponentialRampToValueAtTime(volume, startAtNote + 0.012);
+        envelope.gain.exponentialRampToValueAtTime(0.0001, endAt);
+        oscillator.connect(envelope);
+        envelope.connect(audioContext.destination);
+        oscillator.start(startAtNote);
+        oscillator.stop(endAt + 0.02);
+      }
+    }
+
+    function playSound(kind) {
+      if (!soundEnabled) return;
+      void unlockAudio().then((unlocked) => {
+        if (unlocked) playSoundNow(kind);
+      });
+    }
+
+    function playRoomTransitionSound(previousSnapshot, nextSnapshot) {
+      const next = nextSnapshot?.state;
+      if (!next) return;
+      if (!previousSnapshot?.state) {
+        if (next.phase === 'PLAYING') pendingDealSound = true;
+        return;
+      }
+      const previous = previousSnapshot.state;
+      if (previous.version === next.version) return;
+      if (next.phase === 'GAME_OVER' && previous.phase !== 'GAME_OVER') {
+        playSound(next.loserId === authenticatedUserId ? 'defeat' : 'victory');
+        return;
+      }
+      if (next.phase === 'PLAYING' && previous.phase !== 'PLAYING') {
+        playSound('deal');
+        return;
+      }
+      if (next.isDefenderTaking && !previous.isDefenderTaking) {
+        playSound('take');
+        return;
+      }
+      const oldDefended = previous.table.filter((pair) => pair.defense !== null).length;
+      const newDefended = next.table.filter((pair) => pair.defense !== null).length;
+      if (next.table.length > previous.table.length) {
+        playSound('attack');
+      } else if (newDefended > oldDefended) {
+        playSound('defend');
+      } else if (previous.table.length > 0 && next.table.length === 0) {
+        playSound('clear');
+      } else if (next.deckCount < previous.deckCount) {
+        playSound('draw');
+      } else if (next.activeThrowerId === authenticatedUserId && previous.activeThrowerId !== authenticatedUserId) {
+        playSound('turn');
+      }
+    }
+
+    document.addEventListener('pointerdown', () => {
+      if (!soundEnabled) return;
+      void unlockAudio().then((unlocked) => {
+        if (unlocked && pendingDealSound) {
+          pendingDealSound = false;
+          playSoundNow('deal');
+        }
+      });
+    }, { capture: true });
+
     async function apiFetch(path, options = {}) {
       const res = await fetch(path, {
         ...options,
@@ -186,6 +292,7 @@
           authenticatedUserId = packet.payload.userId;
           reconnectDelay = 1000;
         } else if (packet.event === 'ROOM_SYNC') {
+          playRoomTransitionSound(snapshot, packet.payload);
           snapshot = packet.payload;
           startup.hidden = true;
           bottomNav.hidden = false;
@@ -504,8 +611,25 @@
     });
     $('trumpLeftBtn').addEventListener('click', () => { trumpPosition = 'left'; syncSettingsButtons(); renderTableState(); void saveSettings({ trumpPosition }); });
     $('trumpRightBtn').addEventListener('click', () => { trumpPosition = 'right'; syncSettingsButtons(); renderTableState(); void saveSettings({ trumpPosition }); });
-    $('soundOnBtn').addEventListener('click', () => { soundEnabled = true; syncSettingsButtons(); void saveSettings({ soundEnabled }); });
-    $('soundOffBtn').addEventListener('click', () => { soundEnabled = false; syncSettingsButtons(); void saveSettings({ soundEnabled }); });
+    $('soundOnBtn').addEventListener('click', () => {
+      soundEnabled = true;
+      syncSettingsButtons();
+      void saveSettings({ soundEnabled });
+      void unlockAudio().then((unlocked) => {
+        if (unlocked) {
+          playSoundNow('toggleOn');
+          showToast('Звук включён. Колода на связи! 🔊');
+        } else {
+          showToast('Нажми ещё раз после загрузки, чтобы разрешить звук в Telegram.');
+        }
+      });
+    });
+    $('soundOffBtn').addEventListener('click', () => {
+      soundEnabled = false;
+      syncSettingsButtons();
+      void saveSettings({ soundEnabled });
+      showToast('Звуки отключены. Тишина тоже стратегия. 🤫');
+    });
     $('chatButton').addEventListener('click', () => setChat(!chatOpen));
     $('closeChat').addEventListener('click', () => setChat(false));
     document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => socket?.send(JSON.stringify({ type: 'SEND_CHAT', text: chip.dataset.text || '' }))));
