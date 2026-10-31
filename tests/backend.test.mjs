@@ -70,6 +70,7 @@ test('backend health endpoint and WebSocket room auth provide per-player snapsho
   const baseUrl = `http://127.0.0.1:${address.port}`;
   const page = await fetch(`${baseUrl}/`);
   assert.equal(page.status, 200);
+  assert.match(page.headers.get('content-security-policy') || '', /media-src 'self' blob:/);
   assert.match(await page.text(), /OPTIMIST DURAK/);
   const health = await fetch(`${baseUrl}/healthz`);
   assert.equal(health.status, 200);
