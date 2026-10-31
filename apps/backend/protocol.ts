@@ -75,6 +75,9 @@ export function parseClientMessage(raw: string | Uint8Array): ClientMessage {
     if (action.type === 'TAKE' || action.type === 'PASS') {
       return { type: 'GAME_ACTION', commandId: msg.commandId, action: { type: action.type, expectedVersion: action.expectedVersion as number } };
     }
+    if (action.type === 'TRANSFER' && typeof action.cardId === 'string' && CARD_ID.test(action.cardId)) {
+      return { type: 'GAME_ACTION', commandId: msg.commandId, action: { type: 'TRANSFER', cardId: action.cardId, expectedVersion: action.expectedVersion as number } };
+    }
     throw new ProtocolError('INVALID_ACTION', 'Недопустимый тип или параметры игрового действия.');
   }
   throw new ProtocolError('UNKNOWN_MESSAGE', 'Неизвестный тип сообщения.');
