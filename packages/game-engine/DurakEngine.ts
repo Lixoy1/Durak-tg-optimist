@@ -16,6 +16,29 @@ const RANK_FILE_MAP: Record<Rank, string> = {
   11: 'J', 12: 'Q', 13: 'K', 14: 'A',
 };
 
+const SUIT_NAME: Record<Suit, string> = {
+  clubs: 'треф',
+  spades: 'пик',
+  diamonds: 'бубен',
+  hearts: 'червей',
+};
+
+/** Russian card name for clear player-facing rule messages. */
+export function formatCardName(
+  card: Pick<Card, 'rank' | 'suit'>,
+  grammaticalCase: 'nominative' | 'accusative' = 'nominative',
+): string {
+  const rankNames: Record<number, { nominative: string; accusative: string }> = {
+    11: { nominative: 'валет', accusative: 'валета' },
+    12: { nominative: 'дама', accusative: 'даму' },
+    13: { nominative: 'король', accusative: 'короля' },
+    14: { nominative: 'туз', accusative: 'туза' },
+  };
+  const namedRank = rankNames[card.rank];
+  const rank = namedRank ? namedRank[grammaticalCase] : String(card.rank);
+  return `${rank} ${SUIT_NAME[card.suit]}`;
+}
+
 export class GameRuleError extends Error {
   public readonly code: string;
   constructor(code: string, message: string) {
@@ -357,7 +380,7 @@ export class DurakEngine {
     if (cardIndex < 0) throw new GameRuleError('CARD_NOT_IN_HAND', 'Этой карты нет в вашей руке.');
     const defenseCard = defender.hand[cardIndex]!;
     if (!this.canBeat(pair.attack, defenseCard)) {
-      throw new GameRuleError('CANNOT_BEAT', `Карта ${defenseCard.id} не может побить ${pair.attack.id}.`);
+      throw new GameRuleError('CANNOT_BEAT', `${formatCardName(defenseCard)} не побьёт ${formatCardName(pair.attack, 'accusative')}. Нужна карта старше той же масти или козырь.`);
     }
 
     defender.hand.splice(cardIndex, 1);
