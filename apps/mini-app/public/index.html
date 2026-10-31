@@ -777,7 +777,7 @@
       await preloadAllAssets();
       await loadBootstrapData();
       if (currentRoomId && /^(?:[a-f0-9]{16}|ai_[a-f0-9]{6})$/.test(currentRoomId)) {
-        connectToRoom(currentRoomId, 'play');
+        connectToRoom(currentRoomId, currentMode);
       } else {
         startup.hidden = true; bottomNav.hidden = false; switchTab('lobbyView');
       }
