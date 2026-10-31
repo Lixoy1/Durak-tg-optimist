@@ -132,7 +132,7 @@ export function createOptimistBackend(options: BackendOptions) {
         return true;
       }
       if (req.method === 'GET' && url.pathname === '/api/profile') {
-        writeJson(res, 200, { profile: rooms.getProfile(user.id, user.username), settings: rooms.getUserSettings(user.id) });
+        writeJson(res, 200, { profile: rooms.getProfile(user.id, user.username), achievements: rooms.getAchievements(user.id), settings: rooms.getUserSettings(user.id) });
         return true;
       }
       if (req.method === 'GET' && url.pathname === '/api/leaderboard') {
@@ -143,6 +143,8 @@ export function createOptimistBackend(options: BackendOptions) {
         writeJson(res, 200, {
           profile: rooms.getProfile(user.id, user.username),
           leaderboard: rooms.getLeaderboard(15),
+          durakLeaderboard: rooms.getDurakLeaderboard(15),
+          achievements: rooms.getAchievements(user.id),
           settings: rooms.getUserSettings(user.id),
           lobbyRooms: rooms.listPublicRooms(),
         });
