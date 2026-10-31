@@ -351,7 +351,7 @@
       tableEl.replaceChildren();
       if (!state.table.length) {
         const empty = document.createElement('div'); empty.className = 'empty-note';
-        empty.textContent = state.phase === 'WAITING_FOR_PLAYERS' ? 'Места за столом ждут свою команду!' : state.phase === 'GAME_OVER' ? 'Отличная партия! Скоро сыграем ещё.' : 'Зелёное поле ждёт первого хода!';
+        empty.textContent = state.phase === 'WAITING_FOR_PLAYERS' ? 'Команда собирается. Легенды не опаздывают! 👑' : state.phase === 'GAME_OVER' ? 'Финал сыгран. Реванш уже пишет сценарий! 🏆' : 'Зелёное поле ждёт первого красивого хода. Кто начнёт шоу?';
         tableEl.style.display = 'flex'; tableEl.append(empty);
       } else {
         tableEl.style.display = 'grid';
