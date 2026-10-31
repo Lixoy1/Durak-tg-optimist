@@ -59,6 +59,7 @@ export interface CreateRoomOptions {
   isPublic?: boolean;
   /** Allows explicitly invited observers in private/group rooms without listing them publicly. */
   allowSpectators?: boolean;
+  gameConfig?: Pick<GameConfig, 'firstBoutMaxCards' | 'mode' | 'afterTake'>;
 }
 
 export type GameOverHandler = (state: GameState) => void | Promise<void>;
@@ -131,7 +132,12 @@ export class RoomManager {
     if (!ownerId || !username.trim()) throw new RoomError('INVALID_OWNER', 'Не удалось определить создателя стола.');
     this.store.ensurePlayer(ownerId, username);
     const roomId = randomBytes(8).toString('hex');
-    const engine = new DurakEngine(roomId, { maxPlayers, firstBoutMaxCards: 6 });
+    const engine = new DurakEngine(roomId, {
+      maxPlayers,
+      firstBoutMaxCards: options.gameConfig?.firstBoutMaxCards ?? 6,
+      mode: options.gameConfig?.mode ?? 'PODKIDNOY',
+      afterTake: options.gameConfig?.afterTake ?? 'ATTACKER',
+    });
     engine.addPlayer(ownerId, username);
     const room: RoomRecord = {
       engine,
