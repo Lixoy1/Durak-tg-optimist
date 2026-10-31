@@ -318,7 +318,6 @@ export function createOptimistBackend(options: BackendOptions) {
       session.roomId = msg.roomId;
       clearTimeout(session.authTimer);
       roomSet(msg.roomId).add(ws);
-      rooms.notifyPlayerConnected(msg.roomId, user.id);
       sendJson(ws, { event: 'AUTH_OK', payload: { userId: user.id, username: user.username, roomId: msg.roomId } });
       broadcastRoomSync(msg.roomId);
       return;
