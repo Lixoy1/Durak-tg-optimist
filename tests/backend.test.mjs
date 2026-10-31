@@ -48,9 +48,9 @@ async function openSocket(url, initData, roomId) {
   const authOk = waitForPacket(ws, (packet) => packet.event === 'AUTH_OK');
   const roomSync = waitForPacket(ws, (packet) => packet.event === 'ROOM_SYNC');
   ws.send(JSON.stringify({ type: 'AUTH', initData, roomId }));
-  await authOk;
+  const auth = await authOk;
   const sync = await roomSync;
-  return { ws, initialSync: sync };
+  return { ws, initialSync: sync, voiceSessionToken: auth.payload.voiceSessionToken };
 }
 
 test('backend health endpoint and WebSocket room auth provide per-player snapshots', async (t) => {
@@ -117,4 +117,67 @@ test('WebSocket origin allow-list rejects an unexpected browser origin', async (
     ws.once('error', reject);
     ws.on('error', () => {});
   }));
+});
+
+
+test('authenticated room members can upload and play short voice messages without WebSocket audio frames', async (t) => {
+  const app = createOptimistBackend({
+    botToken: BOT_TOKEN,
+    webAppUrl: 'http://localhost:5173',
+    port: 0,
+    storageFile: null,
+  });
+  const sockets = [];
+  t.after(async () => {
+    for (const ws of sockets) ws.terminate();
+    await app.close();
+  });
+  await app.listen();
+  const address = app.server.address();
+  assert.ok(address && typeof address === 'object');
+  const baseUrl = 'http://127.0.0.1:' + address.port;
+  const { roomId } = app.rooms.createRoom('1001', 'Owner', 2);
+  await app.rooms.joinRoom(roomId, '2002', 'Guest');
+
+  const owner = await openSocket('ws://127.0.0.1:' + address.port + '/ws', signedInitData({ id: 1001, first_name: 'Owner' }), roomId);
+  const guest = await openSocket('ws://127.0.0.1:' + address.port + '/ws', signedInitData({ id: 2002, first_name: 'Guest' }), roomId);
+  sockets.push(owner.ws, guest.ws);
+
+  const voiceNotice = waitForPacket(owner.ws, (packet) => packet.event === 'CHAT_MESSAGE' && packet.payload.voice?.id);
+  const audioBytes = Buffer.from('OPTIMIST DURAK voice fixture: audio bytes are stored outside the WebSocket transport.');
+  const upload = await fetch(baseUrl + '/api/rooms/' + roomId + '/voice', {
+    method: 'POST',
+    headers: {
+      'content-type': 'audio/webm',
+      'x-room-session': guest.voiceSessionToken,
+      'x-voice-duration': '3',
+    },
+    body: audioBytes,
+  });
+  assert.equal(upload.status, 201);
+  const uploadPayload = await upload.json();
+  const notice = await voiceNotice;
+  assert.equal(notice.payload.senderId, '2002');
+  assert.equal(notice.payload.voice.id, uploadPayload.voiceId);
+  assert.equal(notice.payload.voice.durationSeconds, 3);
+  assert.equal(notice.payload.voice.mimeType, 'audio/webm');
+
+  const playback = await fetch(baseUrl + '/api/rooms/' + roomId + '/voice/' + uploadPayload.voiceId, {
+    headers: { 'x-room-session': owner.voiceSessionToken },
+  });
+  assert.equal(playback.status, 200);
+  assert.equal(playback.headers.get('content-type'), 'audio/webm');
+  assert.deepEqual(Buffer.from(await playback.arrayBuffer()), audioBytes);
+
+  const unauthenticated = await fetch(baseUrl + '/api/rooms/' + roomId + '/voice', {
+    method: 'POST',
+    headers: { 'content-type': 'audio/webm', 'x-voice-duration': '3' },
+    body: audioBytes,
+  });
+  assert.equal(unauthenticated.status, 401);
+
+  const wrongRoomToken = await fetch(baseUrl + '/api/rooms/aaaaaaaaaaaaaaaa/voice/' + uploadPayload.voiceId, {
+    headers: { 'x-room-session': owner.voiceSessionToken },
+  });
+  assert.equal(wrongRoomToken.status, 401);
 });
