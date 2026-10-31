@@ -1,0 +1,24 @@
+{
+  "name": "optimist-durak",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "description": "OPTIMIST DURAK Telegram game backend and audited game engine",
+  "engines": { "node": ">=22.6.0" },
+  "scripts": {
+    "start": "node --env-file=.env --experimental-strip-types apps/backend/server.ts",
+    "dev": "node --env-file=.env --watch --experimental-strip-types apps/backend/server.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "simulate": "node --experimental-strip-types --input-type=module -e \"import { runStressSimulation } from './packages/game-engine/simulator.ts'; console.log(runStressSimulation(1000));\""
+  },
+  "dependencies": {
+    "grammy": "^1.37.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,30 @@
+name: OPTIMIST DURAK CI
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests, types, assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Type-check TypeScript
+        run: npm run typecheck
+      - name: Run tests
+        run: npm test
+      - name: Simulate 1,000 games
+        run: npm run simulate

@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0e" />
+  <title>OPTIMIST DURAK</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{color-scheme:dark;--bg:#0b0b0e;--panel:#17151b;--felt:#10251a;--gold:#d4af37;--ruby:#e0115f;--cream:#f4e8c6;--muted:#a6a0ad}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 10%,#241923 0,#0b0b0e 65%);color:#faf7f0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}body{height:100dvh;overflow:hidden;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,input{font:inherit}button{touch-action:manipulation;cursor:pointer}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:#111015ed;border-bottom:1px solid #6f5926}.brand-sub{font-size:9px;letter-spacing:.17em;color:var(--gold);font-weight:850}.brand{font-weight:950;letter-spacing:.06em;color:#fff;font-size:17px}.deck-indicator{display:flex;align-items:center;gap:8px}.deck-back{width:30px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--gold)}.counter{border:1px solid #6b5525;border-radius:12px;padding:7px 9px;color:var(--cream);font-size:11px;white-space:nowrap}
+    #views{min-height:0;flex:1;display:flex;flex-direction:column;overflow:hidden}.view{min-height:0;flex:1;overflow:auto;padding:10px 12px 12px}.view[hidden]{display:none}.scroll-stage{min-height:0;flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0}.status-banner{margin:8px 12px 5px;padding:9px 12px;border-radius:15px;border:1px solid #9b7d36;background:linear-gradient(180deg,#211c25,#141218);text-align:center}.status-main{font-size:15px;font-weight:900}.status-sub{font-size:11px;color:var(--muted);margin-top:3px}.alert-take{border-color:var(--ruby);box-shadow:0 0 18px #e0115f35}
+    .players{display:flex;gap:7px;padding:4px 12px 8px;overflow-x:auto}.player{flex:1;min-width:90px;max-width:160px;padding:7px 8px;border:1px solid #53462d;border-radius:12px;background:var(--panel);text-align:center}.player.current{border-color:var(--gold);box-shadow:0 0 14px #d4af3720}.player.defender{border-color:var(--ruby)}.player .name{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.player .meta{font-size:10px;color:var(--muted);margin-top:2px}
+    .table-wrap{position:relative;flex:1;min-height:145px;margin:0 12px;border:1px solid #24583f;border-radius:20px;background:radial-gradient(ellipse at center,#17432f,#0b2117 75%);box-shadow:inset 0 0 35px #0009;display:flex;align-items:center;justify-content:center;padding:12px 68px 12px 12px;overflow:auto}.table{display:grid;grid-template-columns:repeat(3,minmax(56px,76px));gap:10px 12px;justify-content:center;align-items:center;width:100%;max-width:270px}.pair{width:100%;aspect-ratio:.68;position:relative;border:1px dashed #d4af3755;border-radius:8px;background:#0d120f66;padding:0;overflow:visible}.pair.selected{outline:2px solid var(--ruby);outline-offset:2px}.card-frame{width:100%;height:100%;position:relative;overflow:hidden;border-radius:7px;border:1px solid #b9984d;background:linear-gradient(145deg,#29232d,#100f13);box-shadow:0 5px 12px #0009}.defense-card{position:absolute;left:18%;top:16%;width:88%;height:88%;z-index:2;transform:rotate(6deg)}.playing-card{display:block;width:100%;height:100%;object-fit:cover;border-radius:6px;opacity:0;transition:opacity .12s}.playing-card.ready{opacity:1}.card-skeleton-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:16px;pointer-events:none}.empty-note{color:#a3b5a8;text-align:center;font-size:13px;max-width:240px;line-height:1.5}.side-deck-widget{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:50px;height:78px;display:flex;align-items:center;justify-content:center;pointer-events:none}.side-trump-card{position:absolute;left:-13px;width:39px;height:56px;object-fit:cover;transform:rotate(-90deg);border:1px solid var(--gold);border-radius:4px}.side-deck-back{position:relative;width:40px;height:60px;object-fit:cover;border:1px solid var(--gold);border-radius:5px;z-index:2}.side-deck-count{position:absolute;z-index:3;background:#0b0b0ee8;border:1px solid var(--gold);color:var(--gold);font-size:10px;font-weight:900;padding:2px 5px;border-radius:99px}.spectator-pill{position:absolute;left:10px;top:9px;z-index:5;background:#0b1522e8;border:1px solid #d4af3788;border-radius:99px;padding:4px 9px;font-size:10px;color:var(--cream)}.trump-pill{font-size:11px;color:var(--cream);padding:6px 10px;text-align:center;opacity:.9}
+    .hand-area{padding:4px 0 3px}.hand-label{color:var(--muted);font-size:11px;text-align:center;margin-bottom:1px}.hand{display:flex;overflow-x:auto;overflow-y:visible;min-height:124px;padding:12px 20px 8px;scroll-snap-type:x proximity;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}.hand::-webkit-scrollbar{display:none}.hand-track{display:flex;align-items:flex-end;margin:0 auto}.hand-card{flex:0 0 68px;width:68px;height:100px;padding:0;border:0;background:transparent;border-radius:8px;position:relative;scroll-snap-align:center;transition:transform .15s ease}.hand-card:not(:first-child){margin-left:var(--fan-overlap,-16px)}.hand-card.selected,.hand-card:active{transform:translateY(-13px) scale(1.05);z-index:30!important;filter:drop-shadow(0 0 9px #e0115fbb)}.hand-card .card-frame{width:68px;height:100px}.actions{display:flex;gap:7px;padding:6px 12px 8px}.btn{min-width:0;flex:1;padding:11px 8px;border-radius:14px;border:1px solid #7e662e;background:linear-gradient(135deg,#f2cf70,#b18a2a);color:#18120a;font-size:12px;font-weight:850}.btn.secondary{background:#201c23;color:var(--cream);border-color:#5c4a28}.btn.ruby{background:linear-gradient(135deg,#fa3d80,#a90645);color:#fff;border-color:#ec5086}.btn:disabled{opacity:.35;cursor:not-allowed}.chat-button{position:relative;flex:0 0 auto;border:1px solid var(--gold);background:#19151c;color:var(--cream);padding:10px 12px;border-radius:12px;font-weight:800;font-size:12px}.badge{position:absolute;right:-5px;top:-6px;background:var(--ruby);color:white;border-radius:99px;font-size:10px;min-width:17px;text-align:center;padding:2px 4px;display:none}
+    .bottom-nav{display:flex;justify-content:space-around;align-items:center;margin:2px 10px 5px;padding:4px;background:#16151df5;border:1px solid #ffffff12;border-radius:20px}.nav-tab{flex:1;background:transparent;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 0;font-size:9px;font-weight:750;border-radius:13px}.nav-tab.active{color:var(--gold);background:#d4af371c}.nav-tab .ico{font-size:15px}
+    .card-box,.lobby-card,.leader-row{background:#16151d;border:1px solid #d4af3744;border-radius:16px;padding:12px;margin-bottom:9px}.lobby-card,.leader-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.lobby-sub{font-size:11px;color:var(--muted);margin-top:3px}.lobby-btn{border:0;border-radius:12px;padding:9px 13px;font-size:12px;font-weight:850;background:#f4e8c6;color:#111}.lobby-btn.watch{background:#918b99}.section-title{text-align:center;color:var(--gold);margin:4px 0 12px;font-size:16px}.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;text-align:center;margin-top:10px}.stat-val{font-size:19px;font-weight:900}.stat-lbl{font-size:10px;color:var(--muted)}.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:7px;align-items:end}.podium-item{background:#16151d;border:1px solid #d4af3744;border-radius:14px;padding:12px 6px;text-align:center;font-size:11px}.podium-item.first{border-color:var(--gold);padding:17px 6px}.podium-wins{font-size:17px;font-weight:900;color:var(--gold);margin-top:5px}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 0;border-bottom:1px solid #ffffff10;font-size:13px}.segmented{display:flex;gap:3px;padding:3px;border:1px solid #d4af3755;background:#0b0b0e;border-radius:11px}.seg-btn{background:transparent;border:0;color:var(--muted);padding:6px 10px;border-radius:8px;font-size:11px}.seg-btn.active{color:var(--gold);background:#28232d}.drawer{position:fixed;z-index:40;left:0;right:0;bottom:0;height:52dvh;display:flex;flex-direction:column;background:#121116f7;border-top:2px solid var(--gold);border-radius:19px 19px 0 0;transform:translateY(105%);transition:transform .25s ease;padding-bottom:env(safe-area-inset-bottom)}.drawer.open{transform:translateY(0)}.chat-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid #d4af3733}.chat-title{color:var(--gold);font-size:13px;font-weight:900}.close-chat{background:transparent;border:0;color:#b7aebf;font-size:22px}.quick{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;border-bottom:1px solid #ffffff0d}.chip{white-space:nowrap;border:1px solid #8b6c2c;border-radius:99px;padding:6px 9px;background:#2b2118;color:#f8e8bf;font-size:10px}.messages{flex:1;overflow:auto;display:flex;flex-direction:column;gap:7px;padding:10px 12px}.msg{max-width:85%;align-self:flex-start;padding:8px 10px;border-radius:13px;background:#24212a;font-size:12px;line-height:1.4;overflow-wrap:anywhere}.msg.mine{align-self:flex-end;background:#332716;border:1px solid #745d2f}.msg.system{align-self:center;background:#e0115f19;border:1px solid #e0115f55;color:#ffd3e2;text-align:center;font-size:11px}.msg-author{color:var(--gold);font-size:10px;font-weight:850;margin-bottom:2px}.chat-compose{display:flex;gap:7px;padding:8px 10px 10px;border-top:1px solid #ffffff12}.chat-compose input{min-width:0;flex:1;border:1px solid #62502b;background:#0b0b0e;border-radius:11px;padding:10px;color:white;font-size:13px}.send{flex:0 0 auto;padding:10px 14px}.toast{position:fixed;left:12px;right:12px;top:68px;z-index:60;background:#251c22;border:1px solid #a84969;border-radius:12px;padding:10px 12px;font-size:12px;text-align:center;display:none}.overlay-error{margin:auto;padding:22px;max-width:330px;text-align:center}.overlay-error h2{color:var(--gold);font-size:21px}.overlay-error p{font-size:13px;line-height:1.5;color:#cbc3d0}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div><div class="brand-sub">36 КАРТ · АВТОРСКАЯ КОЛОДА</div><div class="brand">OPTIMIST DURAK</div></div>
+    <div class="deck-indicator"><img class="deck-back" src="/assets/cards/back.webp" alt="Рубашка колоды" /><div id="deckCounter" class="counter">Колода: —</div></div>
+  </header>
+  <div id="toast" class="toast" role="status"></div>
+
+  <div id="views">
+    <main class="view scroll-stage" id="gameView" hidden>
+      <div id="statusBox" class="status-banner"><div id="status" class="status-main">Подключаем стол…</div><div id="tableCountSub" class="status-sub">На столе 0/6</div></div>
+      <section id="players" class="players"></section>
+      <section class="table-wrap">
+        <div id="spectatorBadge" class="spectator-pill" hidden>👁 Наблюдают: 0</div>
+        <div id="table" class="table"></div>
+        <div class="side-deck-widget"><img id="sideTrumpImg" class="side-trump-card" src="/assets/cards/back.webp" alt="Козырь" hidden /><img id="sideDeckBack" class="side-deck-back" src="/assets/cards/back.webp" alt="Колода" /><span id="sideDeckBadge" class="side-deck-count">36</span></div>
+      </section>
+      <div id="trump" class="trump-pill">Козырь: —</div>
+      <section class="hand-area"><div id="handLabel" class="hand-label">Твои карты</div><div id="hand" class="hand"><div id="handTrack" class="hand-track"></div></div></section>
+      <section class="actions"><button id="primaryAction" class="btn secondary" type="button" disabled>Пас</button><button id="takeAction" class="btn ruby" type="button" disabled>Беру</button><button id="chatButton" class="chat-button" type="button">💬 Чат<span id="unreadBadge" class="badge">0</span></button></section>
+    </main>
+
+    <section id="lobbyView" class="view" hidden>
+      <h3 class="section-title">🃏 Открытые столы</h3>
+      <div class="actions"><button id="refreshLobbyBtn" class="btn secondary" type="button">Обновить</button><button id="createPublicRoomBtn" class="btn" type="button">+ Создать стол</button><button id="createAiRoomBtn" class="btn secondary" type="button">🤖 С ИИ</button></div>
+      <div id="lobbyList"></div>
+    </section>
+
+    <section id="ratingView" class="view" hidden>
+      <h3 class="section-title">🏆 Рейтинг Оптимистов</h3><div id="podiumBox" class="podium"></div><div id="leaderList" style="margin-top:12px"></div>
+    </section>
+
+    <section id="profileView" class="view" hidden>
+      <div class="card-box" style="text-align:center"><div style="font-size:34px">😎</div><div id="profName" style="font-size:20px;font-weight:900">ОПТИМИСТ</div><div id="profId" style="font-size:11px;color:var(--muted)">Профиль игрока</div></div>
+      <div class="card-box"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:var(--muted);font-weight:800">РЕЙТИНГ ПРОФИЛЯ</span><span id="profRating" style="font-size:21px;font-weight:900;color:var(--gold)">0,10 / 5</span></div><div class="stats-grid"><div><div id="stGames" class="stat-val">0</div><div class="stat-lbl">Игр</div></div><div><div id="stWins" class="stat-val">0</div><div class="stat-lbl">Победы</div></div><div><div id="stLosses" class="stat-val">0</div><div class="stat-lbl">Поражения</div></div><div><div id="stDraws" class="stat-val">0</div><div class="stat-lbl">Ничьи</div></div></div></div>
+    </section>
+
+    <section id="settingsView" class="view" hidden>
+      <h3 class="section-title">⚙️ Настройки</h3>
+      <div class="card-box">
+        <div class="setting-row"><span>🃏 Козырь в руке</span><div class="segmented"><button id="trumpLeftBtn" class="seg-btn" type="button">Слева</button><button id="trumpRightBtn" class="seg-btn active" type="button">Справа</button></div></div>
+        <div class="setting-row"><span>🔊 Звуки</span><div class="segmented"><button id="soundOnBtn" class="seg-btn active" type="button">Вкл</button><button id="soundOffBtn" class="seg-btn" type="button">Выкл</button></div></div>
+      </div>
+    </section>
+  </div>
+
+  <section id="startupError" class="overlay-error"><h2>OPTIMIST DURAK</h2><p id="startupMessage">Загружаем и проверяем авторскую колоду 36 карт…</p></section>
+  <nav id="bottomNav" class="bottom-nav" hidden>
+    <button class="nav-tab" data-tab="ratingView" type="button"><span class="ico">📊</span><span>Рейтинг</span></button>
+    <button class="nav-tab" data-tab="profileView" type="button"><span class="ico">👤</span><span>Профиль</span></button>
+    <button class="nav-tab" data-tab="settingsView" type="button"><span class="ico">⚙️</span><span>Настройки</span></button>
+    <button class="nav-tab" data-tab="lobbyView" type="button"><span class="ico">🏠</span><span>Лобби</span></button>
+    <button class="nav-tab active" data-tab="gameView" type="button"><span class="ico">🃏</span><span>Стол</span></button>
+  </nav>
+
+  <aside id="chatDrawer" class="drawer" aria-label="Чат стола">
+    <header class="chat-head"><span class="chat-title">💬 Живой чат стола OPTIMIST</span><button id="closeChat" class="close-chat" type="button" aria-label="Закрыть чат">×</button></header>
+    <div class="quick"><button class="chip" type="button" data-text="Красивый ход! 🔥">Красивый ход! 🔥</button><button class="chip" type="button" data-text="Сегодня мой вечер! 😎">Сегодня мой вечер! 😎</button><button class="chip" type="button" data-text="С козырей зашёл! ♠️">С козырей зашёл! ♠️</button><button class="chip" type="button" data-text="Спасибо за подарки! 😂">Спасибо за подарки! 😂</button><button class="chip" type="button" data-text="Всем удачной раздачи! ✨">Всем удачной раздачи! ✨</button></div>
+    <div id="messages" class="messages"></div>
+    <form id="chatForm" class="chat-compose"><input id="chatInput" maxlength="200" autocomplete="off" placeholder="Напиши с оптимизмом…" /><button id="sendChatBtn" class="btn send" type="submit">➤</button></form>
+  </aside>
+
+  <script>
+  (() => {
+    'use strict';
+    const tg = window.Telegram?.WebApp;
+    const startParam = tg?.initDataUnsafe?.start_param || '';
+    const urlRoomId = new URLSearchParams(location.search).get('roomId');
+    let currentRoomId = startParam.startsWith('room_') ? startParam.slice(5) : urlRoomId;
+    const $ = (id) => document.getElementById(id);
+    const startup = $('startupError'), startupMessage = $('startupMessage'), bottomNav = $('bottomNav');
+    const tableEl = $('table'), handTrack = $('handTrack'), playersEl = $('players');
+    const chatDrawer = $('chatDrawer'), messagesEl = $('messages'), unreadBadge = $('unreadBadge');
+    let socket = null, authenticatedUserId = '', snapshot = null, chatOpen = false, unread = 0;
+    let selectedCardId = null, selectedAttackIndex = 0, reconnectDelay = 1000, shouldReconnect = true;
+    let trumpPosition = 'right', soundEnabled = true, activeTabId = 'lobbyView', currentMode = 'play';
+    const decodedSet = new Set();
+    const failedSet = new Set();
+
+    if (tg) { tg.ready(); tg.expand(); }
+
+    function assetUrls() {
+      const suits = ['clubs', 'spades', 'diamonds', 'hearts'];
+      const ranks = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+      const urls = ['/assets/cards/back.webp'];
+      for (const suit of suits) for (const rank of ranks) urls.push(`/assets/cards/${suit}/${rank}.webp`);
+      return urls;
+    }
+
+    async function preloadAllAssets() {
+      await Promise.allSettled(assetUrls().map(async (url) => {
+        try {
+          const img = new Image();
+          img.src = url;
+          if (typeof img.decode === 'function') {
+            await img.decode();
+          } else {
+            await new Promise((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = () => reject(new Error(`Cannot load ${url}`));
+            });
+          }
+          decodedSet.add(url);
+        } catch {
+          failedSet.add(url);
+        }
+      }));
+    }
+
+    function showToast(message) {
+      const el = $('toast');
+      el.textContent = String(message);
+      el.style.display = 'block';
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => { el.style.display = 'none'; }, 2800);
+    }
+
+    async function apiFetch(path, options = {}) {
+      const res = await fetch(path, {
+        ...options,
+        headers: {
+          'content-type': 'application/json',
+          'x-telegram-init-data': tg?.initData || '',
+          ...(options.headers || {}),
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || data.error || `Ошибка запроса (${res.status})`);
+      return data;
+    }
+
+    async function loadBootstrapData() {
+      try {
+        const data = await apiFetch('/api/bootstrap');
+        if (data.settings) {
+          trumpPosition = data.settings.trumpPosition;
+          soundEnabled = data.settings.soundEnabled;
+          syncSettingsButtons();
+        }
+        renderProfileData(data.profile);
+        renderLeaderboardData(data.leaderboard || []);
+        renderLobbyList(data.lobbyRooms || []);
+      } catch (error) {
+        if (error instanceof Error && error.message) showToast(error.message);
+      }
+    }
+
+    function connectToRoom(targetRoomId, mode = 'play') {
+      if (!targetRoomId) return;
+      currentRoomId = targetRoomId;
+      currentMode = mode;
+      shouldReconnect = false;
+      const oldSocket = socket;
+      socket = null;
+      oldSocket?.close();
+      shouldReconnect = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const activeSocket = new WebSocket(`${protocol}//${location.host}/ws`);
+      socket = activeSocket;
+      activeSocket.addEventListener('open', () => {
+        activeSocket.send(JSON.stringify({ type: 'AUTH', roomId: currentRoomId, initData: tg?.initData || '', mode: currentMode }));
+      });
+      activeSocket.addEventListener('message', (event) => {
+        let packet;
+        try { packet = JSON.parse(event.data); } catch { return; }
+        if (packet.event === 'AUTH_OK') {
+          authenticatedUserId = packet.payload.userId;
+          reconnectDelay = 1000;
+        } else if (packet.event === 'ROOM_SYNC') {
+          snapshot = packet.payload;
+          startup.hidden = true;
+          bottomNav.hidden = false;
+          switchTab('gameView');
+          renderTableState();
+          if (Array.isArray(snapshot.chatHistory)) renderHistory(snapshot.chatHistory);
+        } else if (packet.event === 'CHAT_MESSAGE') {
+          appendMessage(packet.payload);
+          if (!chatOpen && packet.payload.senderId !== authenticatedUserId) {
+            unread++;
+            unreadBadge.style.display = 'inline-block';
+            unreadBadge.textContent = unread > 9 ? '9+' : String(unread);
+          }
+        } else if (packet.event === 'ERROR') {
+          showToast(packet.message || 'Ошибка действия.');
+          if (['EXPIRED_INIT_DATA', 'INVALID_SIGNATURE', 'INVALID_AUTH_DATE'].includes(packet.code)) {
+            shouldReconnect = false;
+            startup.hidden = false;
+            bottomNav.hidden = true;
+            startupMessage.textContent = 'Сессия Telegram устарела. Закрой и заново открой Mini App через бота.';
+            activeSocket.close();
+          }
+        }
+      });
+      activeSocket.addEventListener('close', (event) => {
+        if (activeSocket !== socket) return;
+        if ([4400, 4401, 4403, 4429].includes(event.code)) shouldReconnect = false;
+        if (shouldReconnect && currentRoomId) {
+          setTimeout(() => {
+            reconnectDelay = Math.min(reconnectDelay * 2, 15000);
+            connectToRoom(currentRoomId, currentMode);
+          }, reconnectDelay);
+        }
+      });
+      activeSocket.addEventListener('error', () => showToast('Ошибка соединения со столом.'));
+    }
+
+    function suitGlyph(suit) { return ({ clubs: '♣', spades: '♠', diamonds: '♦', hearts: '♥' })[suit] || '?'; }
+    function suitColor(suit) { return suit === 'hearts' || suit === 'diamonds' ? '#ff557c' : '#e9e1d2'; }
+    function rankLabel(rank) { return ({ 11: 'J', 12: 'Q', 13: 'K', 14: 'A' })[rank] || String(rank); }
+
+    function fallbackCard(card) {
+      const frame = document.createElement('div');
+      frame.className = 'card-frame';
+      const label = document.createElement('div');
+      label.className = 'card-skeleton-label';
+      label.style.color = suitColor(card.suit);
+      const rank = document.createElement('span');
+      rank.textContent = rankLabel(card.rank);
+      rank.style.fontSize = '21px';
+      const suit = document.createElement('span');
+      suit.textContent = suitGlyph(card.suit);
+      suit.style.fontSize = '26px';
+      label.append(rank, suit);
+      frame.append(label);
+      return frame;
+    }
+
+    function createCardElement(card, extraClass = '') {
+      const url = `/${card.assetPath}`;
+      if (failedSet.has(url)) {
+        const fallback = fallbackCard(card);
+        if (extraClass) fallback.classList.add(extraClass);
+        return fallback;
+      }
+      const frame = document.createElement('div');
+      frame.className = `card-frame ${extraClass}`.trim();
+      const label = document.createElement('div');
+      label.className = 'card-skeleton-label';
+      label.style.color = suitColor(card.suit);
+      label.textContent = `${rankLabel(card.rank)}${suitGlyph(card.suit)}`;
+      frame.append(label);
+      const img = document.createElement('img');
+      img.className = `playing-card${decodedSet.has(url) ? ' ready' : ''}`;
+      img.src = url;
+      img.alt = `${rankLabel(card.rank)} ${suitGlyph(card.suit)}`;
+      img.onload = () => { decodedSet.add(url); img.classList.add('ready'); };
+      img.onerror = () => {
+        failedSet.add(url);
+        const fallback = fallbackCard(card);
+        if (extraClass) fallback.classList.add(extraClass);
+        frame.replaceWith(fallback);
+      };
+      frame.append(img);
+      return frame;
+    }
+
+    function canCardBeat(attackCard, defenseCard, trumpSuit) {
+      if (defenseCard.suit === attackCard.suit) return defenseCard.rank > attackCard.rank;
+      return defenseCard.suit === trumpSuit && attackCard.suit !== trumpSuit;
+    }
+
+    function sortHandCards(cards, trumpSuit) {
+      return [...cards].sort((a, b) => {
+        const aTrump = a.suit === trumpSuit ? 1 : 0;
+        const bTrump = b.suit === trumpSuit ? 1 : 0;
+        if (aTrump !== bTrump) return trumpPosition === 'left' ? bTrump - aTrump : aTrump - bTrump;
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        return a.suit.localeCompare(b.suit);
+      });
+    }
+
+    function renderTableState() {
+      if (!snapshot?.state) return;
+      const state = snapshot.state;
+      const isSpectator = snapshot.viewerRole === 'SPECTATOR';
+      const me = state.players.find((player) => player.id === authenticatedUserId);
+      const isOwner = snapshot.ownerId === authenticatedUserId;
+      const hand = me?.hand || [];
+      $('deckCounter').textContent = `Колода: ${state.deckCount}`;
+      $('tableCountSub').textContent = `${isSpectator ? 'Наблюдение · ' : ''}На столе ${state.table.length}/${state.defenderHandStartCount || 6} · Сброс ${state.discardCount}`;
+      const spectatorBadge = $('spectatorBadge');
+      spectatorBadge.hidden = (snapshot.spectatorCount || 0) === 0 && !isSpectator;
+      spectatorBadge.textContent = `👁 Наблюдают: ${snapshot.spectatorCount || 1}`;
+
+      const statusBox = $('statusBox');
+      statusBox.classList.remove('alert-take');
+      const uncoveredIndex = state.table.findIndex((pair) => pair.defense === null);
+      const canBeatUncovered = uncoveredIndex >= 0 && hand.some((card) => canCardBeat(state.table[uncoveredIndex].attack, card, state.trumpSuit));
+      if (isSpectator) $('status').textContent = 'Режим наблюдения 👁';
+      else if (state.phase === 'WAITING_FOR_PLAYERS') $('status').textContent = isOwner ? 'Ты хозяин стола — запускай!' : 'Ждём старта партии…';
+      else if (state.phase === 'GAME_OVER') $('status').textContent = state.loserId === authenticatedUserId ? 'Сегодня ты — Хранитель Колоды 🃏' : '🏆 Партия завершена';
+      else if (state.defenderId === authenticatedUserId) {
+        if (state.isDefenderTaking) $('status').textContent = 'Забираешь карты — ждём подкидывания…';
+        else if (uncoveredIndex >= 0 && !canBeatUncovered) { $('status').textContent = 'Бить нечем — бери'; statusBox.classList.add('alert-take'); }
+        else $('status').textContent = 'Твой отбой';
+      } else if (state.activeThrowerId === authenticatedUserId) $('status').textContent = state.table.length ? 'Подкинь или жми Пас' : 'Твой заход';
+      else $('status').textContent = `Ходит ${state.players.find((player) => player.id === state.activeThrowerId)?.username || 'соперник'}`;
+
+      playersEl.replaceChildren();
+      state.players.forEach((player) => {
+        const item = document.createElement('div');
+        item.className = 'player' + (player.id === state.activeThrowerId ? ' current' : '') + (player.id === state.defenderId ? ' defender' : '');
+        const name = document.createElement('div'); name.className = 'name'; name.textContent = player.username + (player.id === snapshot.ownerId ? ' 👑' : '');
+        const meta = document.createElement('div'); meta.className = 'meta';
+        meta.textContent = player.status === 'LOSER_DURAK' ? 'Хранитель 🃏' : player.status === 'OUT_WINNER' ? `Место ${player.finishOrder ?? 1}` : `${player.cardCount} карт`;
+        item.append(name, meta); playersEl.append(item);
+      });
+
+      const sideTrumpImg = $('sideTrumpImg'), sideDeckBack = $('sideDeckBack'), sideDeckBadge = $('sideDeckBadge');
+      if (state.deckCount > 0) {
+        sideDeckBack.hidden = state.deckCount <= 1;
+        sideDeckBadge.hidden = false;
+        sideDeckBadge.textContent = String(state.deckCount);
+        if (state.trumpCard) { sideTrumpImg.hidden = false; sideTrumpImg.src = `/${state.trumpCard.assetPath}`; }
+      } else { sideTrumpImg.hidden = true; sideDeckBack.hidden = true; sideDeckBadge.hidden = true; }
+      $('trump').textContent = state.trumpSuit ? `Козырь: ${suitGlyph(state.trumpSuit)}${state.trumpCard ? ` · ${rankLabel(state.trumpCard.rank)}` : ''}` : 'Козырь: —';
+
+      tableEl.replaceChildren();
+      if (!state.table.length) {
+        const empty = document.createElement('div'); empty.className = 'empty-note';
+        empty.textContent = state.phase === 'WAITING_FOR_PLAYERS' ? 'Ждём участников за столом' : state.phase === 'GAME_OVER' ? 'Партия завершена' : 'Стол пуст';
+        tableEl.style.display = 'flex'; tableEl.append(empty);
+      } else {
+        tableEl.style.display = 'grid';
+        state.table.forEach((pair, index) => {
+          const slot = document.createElement('button'); slot.className = 'pair' + (selectedAttackIndex === index && pair.defense === null ? ' selected' : ''); slot.type = 'button';
+          slot.append(createCardElement(pair.attack));
+          if (pair.defense) slot.append(createCardElement(pair.defense, 'defense-card'));
+          slot.addEventListener('click', () => { selectedAttackIndex = index; renderTableState(); });
+          tableEl.append(slot);
+        });
+      }
+
+      handTrack.replaceChildren();
+      const sortedHand = sortHandCards(hand, state.trumpSuit);
+      $('handLabel').textContent = isSpectator ? 'Ты наблюдаешь за партией' : `Твои карты · ${sortedHand.length}`;
+      const overlap = sortedHand.length <= 6 ? -8 : sortedHand.length <= 12 ? -16 : -19;
+      handTrack.style.setProperty('--fan-overlap', `${overlap}px`);
+      sortedHand.forEach((card, index) => {
+        const item = document.createElement('button'); item.type = 'button';
+        item.className = 'hand-card' + (selectedCardId === card.id ? ' selected' : '');
+        item.style.zIndex = String(index + 1); item.setAttribute('aria-label', `Выбрать ${rankLabel(card.rank)} ${suitGlyph(card.suit)}`);
+        item.append(createCardElement(card)); item.addEventListener('click', () => onCardSelected(card)); handTrack.append(item);
+      });
+
+      const primary = $('primaryAction'), take = $('takeAction');
+      primary.disabled = true; take.disabled = true; primary.textContent = 'Пас'; primary.className = 'btn secondary';
+      if (!isSpectator && state.phase === 'WAITING_FOR_PLAYERS' && isOwner) {
+        primary.textContent = '🚀 Начать игру'; primary.className = 'btn'; primary.disabled = state.players.length < 2;
+        primary.onclick = () => socket?.send(JSON.stringify({ type: 'START_GAME' }));
+      } else if (!isSpectator && state.phase === 'PLAYING' && state.activeThrowerId === authenticatedUserId && state.table.length > 0 && (state.table.every((pair) => pair.defense !== null) || state.isDefenderTaking)) {
+        primary.textContent = state.isDefenderTaking ? '👌 Пас (Отдать)' : '👌 Бито'; primary.className = 'btn'; primary.disabled = false;
+        primary.onclick = () => sendAction({ type: 'PASS', expectedVersion: state.version });
+      }
+      if (!isSpectator && state.phase === 'PLAYING' && state.defenderId === authenticatedUserId && !state.isDefenderTaking && state.table.length > 0) {
+        take.textContent = 'Беру'; take.disabled = false; take.onclick = () => sendAction({ type: 'TAKE', expectedVersion: state.version });
+      }
+      $('chatInput').disabled = isSpectator;
+      $('sendChatBtn').disabled = isSpectator;
+      document.querySelectorAll('.chip').forEach((chip) => { chip.disabled = isSpectator; });
+    }
+
+    function renderLobbyList(rooms) {
+      const box = $('lobbyList'); box.replaceChildren();
+      if (!rooms.length) {
+        const empty = document.createElement('div'); empty.className = 'card-box'; empty.style.textAlign = 'center'; empty.style.color = 'var(--muted)';
+        empty.textContent = 'Открытых столов пока нет. Создай стол или начни тренировку с ИИ.'; box.append(empty); return;
+      }
+      rooms.forEach((room) => {
+        const card = document.createElement('div'); card.className = 'lobby-card';
+        const left = document.createElement('div');
+        const title = document.createElement('div'); title.style.fontWeight = '850'; title.textContent = room.ownerName;
+        const sub = document.createElement('div'); sub.className = 'lobby-sub'; sub.textContent = `${room.playerCount}/${room.maxPlayers} игроков · 👁 ${room.spectatorCount} · 36 карт`;
+        left.append(title, sub);
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'lobby-btn' + (room.canSeat ? '' : ' watch');
+        btn.textContent = room.canSeat ? 'Сесть' : 'Наблюдать';
+        btn.addEventListener('click', () => connectToRoom(room.roomId, room.canSeat ? 'play' : 'spectate'));
+        card.append(left, btn); box.append(card);
+      });
+    }
+
+    function renderProfileData(profile) {
+      if (!profile) return;
+      $('profName').textContent = profile.username;
+      $('profId').textContent = `ID: ${profile.userId}`;
+      $('profRating').textContent = `${Number(profile.rating).toFixed(2).replace('.', ',')} / 5`;
+      $('stGames').textContent = String(profile.games);
+      $('stWins').textContent = String(profile.wins);
+      $('stLosses').textContent = String(profile.losses);
+      $('stDraws').textContent = String(profile.draws);
+    }
+
+    function renderLeaderboardData(leaders) {
+      const podium = $('podiumBox'), list = $('leaderList'); podium.replaceChildren(); list.replaceChildren();
+      const fallback = { username: '—', wins: 0 };
+      const first = leaders[0] || fallback, second = leaders[1] || fallback, third = leaders[2] || fallback;
+      [{ data: second, place: '🥈 2', cls: 'podium-item' }, { data: first, place: '👑 1', cls: 'podium-item first' }, { data: third, place: '🥉 3', cls: 'podium-item' }].forEach((slot) => {
+        const item = document.createElement('div'); item.className = slot.cls;
+        const place = document.createElement('div'); place.textContent = slot.place; place.style.fontWeight = '850';
+        const name = document.createElement('div'); name.textContent = slot.data.username; name.style.marginTop = '4px';
+        const wins = document.createElement('div'); wins.className = 'podium-wins'; wins.textContent = String(slot.data.wins);
+        const label = document.createElement('div'); label.textContent = 'побед'; label.style.color = 'var(--muted)';
+        item.append(place, name, wins, label); podium.append(item);
+      });
+      leaders.slice(3).forEach((leader, index) => {
+        const row = document.createElement('div'); row.className = 'leader-row';
+        const name = document.createElement('span'); name.textContent = `#${index + 4} ${leader.username}`;
+        const wins = document.createElement('span'); wins.textContent = `${leader.wins} побед`; wins.style.color = 'var(--gold)'; wins.style.fontWeight = '850';
+        row.append(name, wins); list.append(row);
+      });
+    }
+
+    function onCardSelected(card) {
+      if (!snapshot || snapshot.viewerRole === 'SPECTATOR') return;
+      const state = snapshot.state;
+      if (state.phase !== 'PLAYING') return;
+      if (state.defenderId === authenticatedUserId && !state.isDefenderTaking) {
+        const selected = state.table[selectedAttackIndex];
+        const target = selected && selected.defense === null ? selectedAttackIndex : state.table.findIndex((pair) => pair.defense === null);
+        if (target < 0) { showToast('Все карты на столе уже отбиты.'); return; }
+        sendAction({ type: 'DEFEND', attackIndex: target, cardId: card.id, expectedVersion: state.version });
+      } else if (state.activeThrowerId === authenticatedUserId) {
+        sendAction({ type: 'ATTACK', cardId: card.id, expectedVersion: state.version });
+      } else showToast('Сейчас ход другого игрока.');
+      selectedCardId = null;
+    }
+
+    function sendAction(action) {
+      const commandId = (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`).replace(/[^\w-]/g, '');
+      socket?.send(JSON.stringify({ type: 'GAME_ACTION', commandId, action }));
+    }
+    function renderHistory(history) { messagesEl.replaceChildren(); history.forEach(appendMessage); }
+    function appendMessage(message) {
+      const nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 50;
+      const bubble = document.createElement('div');
+      bubble.className = 'msg' + (message.senderType === 'SYSTEM' ? ' system' : message.senderId === authenticatedUserId ? ' mine' : '');
+      if (message.senderType !== 'SYSTEM') { const author = document.createElement('div'); author.className = 'msg-author'; author.textContent = message.senderName; bubble.append(author); }
+      const text = document.createElement('div'); text.textContent = message.text; bubble.append(text); messagesEl.append(bubble);
+      while (messagesEl.children.length > 50) messagesEl.firstElementChild?.remove();
+      if (nearBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    function setChat(open) { chatOpen = open; chatDrawer.classList.toggle('open', open); if (open) { unread = 0; unreadBadge.style.display = 'none'; messagesEl.scrollTop = messagesEl.scrollHeight; } }
+    function switchTab(tabId) {
+      activeTabId = tabId;
+      ['gameView', 'lobbyView', 'ratingView', 'profileView', 'settingsView'].forEach((id) => { $(id).hidden = id !== tabId; });
+      document.querySelectorAll('.nav-tab').forEach((button) => button.classList.toggle('active', button.dataset.tab === tabId));
+      if (tabId !== 'gameView') void loadBootstrapData();
+    }
+    function syncSettingsButtons() {
+      $('trumpLeftBtn').classList.toggle('active', trumpPosition === 'left');
+      $('trumpRightBtn').classList.toggle('active', trumpPosition === 'right');
+      $('soundToggleBtn')?.classList.toggle('active', soundEnabled);
+      $('soundOnBtn').classList.toggle('active', soundEnabled);
+      $('soundOffBtn').classList.toggle('active', !soundEnabled);
+    }
+    async function saveSettings(patch) {
+      try { await apiFetch('/api/settings', { method: 'POST', body: JSON.stringify(patch) }); }
+      catch (error) { showToast(error instanceof Error ? error.message : 'Не удалось сохранить настройку.'); }
+    }
+
+    document.querySelectorAll('.nav-tab').forEach((button) => button.addEventListener('click', () => switchTab(button.dataset.tab)));
+    $('refreshLobbyBtn').addEventListener('click', () => void loadBootstrapData());
+    $('createPublicRoomBtn').addEventListener('click', async () => {
+      try { const data = await apiFetch('/api/rooms', { method: 'POST', body: JSON.stringify({ maxPlayers: 2, isPublic: true }) }); connectToRoom(data.roomId, 'play'); }
+      catch (error) { showToast(error instanceof Error ? error.message : 'Не удалось создать стол.'); }
+    });
+    $('createAiRoomBtn').addEventListener('click', async () => {
+      try { const data = await apiFetch('/api/rooms', { method: 'POST', body: JSON.stringify({ vsAi: true }) }); connectToRoom(data.roomId, 'play'); }
+      catch (error) { showToast(error instanceof Error ? error.message : 'Не удалось запустить игру с ИИ.'); }
+    });
+    $('trumpLeftBtn').addEventListener('click', () => { trumpPosition = 'left'; syncSettingsButtons(); renderTableState(); void saveSettings({ trumpPosition }); });
+    $('trumpRightBtn').addEventListener('click', () => { trumpPosition = 'right'; syncSettingsButtons(); renderTableState(); void saveSettings({ trumpPosition }); });
+    $('soundOnBtn').addEventListener('click', () => { soundEnabled = true; syncSettingsButtons(); void saveSettings({ soundEnabled }); });
+    $('soundOffBtn').addEventListener('click', () => { soundEnabled = false; syncSettingsButtons(); void saveSettings({ soundEnabled }); });
+    $('chatButton').addEventListener('click', () => setChat(!chatOpen));
+    $('closeChat').addEventListener('click', () => setChat(false));
+    document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => socket?.send(JSON.stringify({ type: 'SEND_CHAT', text: chip.dataset.text || '' }))));
+    $('chatForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (snapshot?.viewerRole === 'SPECTATOR') return;
+      const input = $('chatInput'), message = input.value.trim();
+      if (!message) return;
+      socket?.send(JSON.stringify({ type: 'SEND_CHAT', text: message })); input.value = '';
+    });
+
+    (async () => {
+      if (!tg?.initData) {
+        startupMessage.textContent = 'Открой эту страницу внутри Telegram через кнопку игрового бота — так сервер сможет проверить аккаунт.';
+        return;
+      }
+      await preloadAllAssets();
+      await loadBootstrapData();
+      if (currentRoomId && /^(?:[a-f0-9]{16}|ai_[a-f0-9]{6})$/.test(currentRoomId)) {
+        connectToRoom(currentRoomId, 'play');
+      } else {
+        startup.hidden = true; bottomNav.hidden = false; switchTab('lobbyView');
+      }
+    })();
+    window.addEventListener('beforeunload', () => { shouldReconnect = false; socket?.close(); });
+  })();
+  </script>
+</body>
+</html>
