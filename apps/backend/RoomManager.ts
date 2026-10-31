@@ -543,7 +543,6 @@ export class RoomManager {
           }
         })();
       }, this.aiDelayMs);
-      task.timer.unref?.();
     }).catch((error: unknown) => {
       console.error('[room-manager] AI queue failed:', error instanceof Error ? error.message : 'unknown');
       task.release();
