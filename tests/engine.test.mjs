@@ -164,6 +164,87 @@ test('explains an invalid defense using Russian card names', () => {
   );
 });
 
+test('transfer mode moves defense to the next player using a same-rank card', () => {
+  const engine = makeEngine(3, { maxPlayers: 3, firstBoutMaxCards: 6, mode: 'PEREVODNOY', afterTake: 'ATTACKER' });
+  const allCards = [...engine.state.deck, ...engine.state.players.flatMap((player) => player.hand)];
+  const attack = allCards.find((card) => card.suit === 'hearts' && card.rank === 6);
+  const transfer = allCards.find((card) => card.suit === 'clubs' && card.rank === 6);
+  assert.ok(attack);
+  assert.ok(transfer);
+
+  const chosen = new Set([attack.id, transfer.id]);
+  const remaining = allCards.filter((card) => !chosen.has(card.id));
+  engine.state.players.forEach((player) => { player.hand = []; });
+  engine.state.players[0].hand = [remaining.pop()];
+  engine.state.players[1].hand = [transfer, remaining.pop()];
+  engine.state.players[2].hand = [remaining.pop(), remaining.pop()];
+  engine.state.deck = remaining;
+  engine.state.discardPile = [];
+  engine.state.table = [{ attack, defense: null }];
+  engine.state.attackerIndex = 0;
+  engine.state.defenderIndex = 1;
+  engine.state.activeThrowerIndex = 0;
+  engine.state.defenderHandStartCount = 2;
+  engine.state.isDefenderTaking = false;
+
+  const result = engine.dispatch({
+    type: 'TRANSFER',
+    playerId: 'p1',
+    cardId: transfer.id,
+    expectedVersion: engine.state.version,
+  });
+
+  assert.equal(result.attackerIndex, 1);
+  assert.equal(result.defenderIndex, 2);
+  assert.equal(result.table.length, 2);
+  assert.equal(result.table[1].attack.id, transfer.id);
+  assert.equal(result.table.every((pair) => pair.defense === null), true);
+  engine.assertCardIntegrity();
+});
+
+test('transfer is rejected in podkidnoy mode and when the target cannot hold all attacks', () => {
+  const standard = makeEngine(2);
+  const handCard = standard.state.players[standard.state.defenderIndex].hand[0];
+  assert.throws(
+    () => standard.dispatch({
+      type: 'TRANSFER',
+      playerId: standard.state.players[standard.state.defenderIndex].id,
+      cardId: handCard.id,
+      expectedVersion: standard.state.version,
+    }),
+    (error) => error instanceof GameRuleError && error.code === 'TRANSFER_DISABLED',
+  );
+
+  const engine = makeEngine(3, { maxPlayers: 3, firstBoutMaxCards: 6, mode: 'PEREVODNOY' });
+  const allCards = [...engine.state.deck, ...engine.state.players.flatMap((player) => player.hand)];
+  const attack = allCards.find((card) => card.suit === 'hearts' && card.rank === 7);
+  const transfer = allCards.find((card) => card.suit === 'clubs' && card.rank === 7);
+  assert.ok(attack);
+  assert.ok(transfer);
+  const chosen = new Set([attack.id, transfer.id]);
+  const remaining = allCards.filter((card) => !chosen.has(card.id));
+  engine.state.players.forEach((player) => { player.hand = []; });
+  engine.state.players[0].hand = [remaining.pop()];
+  engine.state.players[1].hand = [transfer, remaining.pop()];
+  engine.state.players[2].hand = [remaining.pop()];
+  engine.state.deck = remaining;
+  engine.state.discardPile = [];
+  engine.state.table = [{ attack, defense: null }];
+  engine.state.attackerIndex = 0;
+  engine.state.defenderIndex = 1;
+  engine.state.activeThrowerIndex = 0;
+  engine.state.defenderHandStartCount = 1;
+  assert.throws(
+    () => engine.dispatch({
+      type: 'TRANSFER',
+      playerId: 'p1',
+      cardId: transfer.id,
+      expectedVersion: engine.state.version,
+    }),
+    (error) => error instanceof GameRuleError && error.code === 'TRANSFER_LIMIT',
+  );
+});
+
 test('allows same-suit higher card and trump to beat non-trump, but not the reverse', () => {
   const engine = makeEngine(2);
   const trump = engine.state.trumpSuit;
