@@ -124,7 +124,7 @@ export class RoomManager {
       lastChatAt: new Map(),
     };
     this.rooms.set(roomId, room);
-    this.appendChat(room, 'SYSTEM', 'Стол OPTIMIST открыт. Пусть победит красивая игра!', 'SYSTEM');
+    this.appendChat(room, 'SYSTEM', '✨ Стол OPTIMIST открыт! Здесь ценят смелые ходы, яркие партии и хорошее настроение.', 'SYSTEM');
     return { roomId, snapshot: this.snapshot(roomId, ownerId) };
   }
 
@@ -151,7 +151,7 @@ export class RoomManager {
       lastChatAt: new Map(),
     };
     this.rooms.set(roomId, room);
-    this.appendChat(room, 'SYSTEM', '🤖 Север (ИИ) за столом! Карты розданы — удачной игры!', 'SYSTEM');
+    this.appendChat(room, 'SYSTEM', '🤖 Север (ИИ) уже за столом! Карты на руках — покажи, на что способен! Удача любит смелых.', 'SYSTEM');
     this.scheduleAiTurnIfNeeded(roomId, room);
     return { roomId, snapshot: this.snapshot(roomId, ownerId) };
   }
@@ -262,7 +262,7 @@ export class RoomManager {
         }
         room.spectators.delete(playerId);
         room.engine.addPlayer(playerId, username);
-        this.appendChat(room, 'SYSTEM', `${username.slice(0, 64)} присоединился к столу.`, 'SYSTEM');
+        this.appendChat(room, 'SYSTEM', `${username.slice(0, 64)} присоединился к команде! За столом становится жарче 🔥`, 'SYSTEM');
       }
       return this.snapshot(roomId, playerId);
     });
@@ -273,7 +273,7 @@ export class RoomManager {
       this.assertMember(room, playerId);
       if (room.ownerId !== playerId) throw new RoomError('OWNER_ONLY', 'Запустить партию может только создатель стола.');
       room.engine.startGame();
-      this.appendChat(room, 'SYSTEM', 'Карты розданы! Удачной партии.', 'SYSTEM');
+      this.appendChat(room, 'SYSTEM', '🃏 Карты розданы! Пусть каждый ход будет красивым, а настрой — победным!', 'SYSTEM');
       this.scheduleAiTurnIfNeeded(roomId, room);
       return this.snapshot(roomId, playerId);
     });
@@ -317,7 +317,7 @@ export class RoomManager {
       if (clean.length > 200) throw new RoomError('MESSAGE_TOO_LONG', 'Сообщение не должно превышать 200 символов.');
       const now = this.now();
       const last = room.lastChatAt.get(playerId) ?? 0;
-      if (now - last < 800) throw new RoomError('RATE_LIMIT', 'Слишком быстро. Подожди секунду перед следующим сообщением.');
+      if (now - last < 800) throw new RoomError('RATE_LIMIT', 'Не торопись — даже у самого яркого хода есть свой момент. Подожди секунду!');
       room.lastChatAt.set(playerId, now);
       const player = room.engine.state.players.find((entry) => entry.id === playerId)!;
       return this.appendChat(room, playerId, clean, 'PLAYER', player.username);
