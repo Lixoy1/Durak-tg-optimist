@@ -69,8 +69,13 @@ GitHub Actions runs the TypeScript type-check, full automated test suite, card a
 
 ## Stage 8 — persistence, public lobby and spectators
 
-Stage 8 adds a JSON-backed profile store for ratings and player preferences, authenticated HTTP endpoints (`/api/bootstrap`, `/api/lobby`, `/api/profile`, `/api/leaderboard`, `/api/settings`, and `/api/rooms`), public/private room visibility, read-only spectator sessions, and queued AI turns. The engine now completes a defender's `TAKE` immediately when no eligible attacker can add a matching rank; all card moves still pass the 36-card integrity check.
+Stage 8 adds a JSON-backed profile store for ratings and player preferences, authenticated HTTP endpoints (`/api/bootstrap`, `/api/lobby`, `/api/profile`, `/api/leaderboard`, `/api/settings`, and `/api/rooms`), public/private room visibility, read-only spectator sessions, and queued AI turns. Spectators can use a separate spectator-only chat and send room-wide emoji reactions without seeing or posting in the players' chat. The engine now completes a defender's `TAKE` immediately when no eligible attacker can add a matching rank; all card moves still pass the 36-card integrity check.
 
 Set `STORAGE_FILE` in `.env` to a writable path (the example uses `.data/optimist-store.json`) to persist profile data across restarts. Tests can pass `storageFile: null` or a temporary path to keep state isolated.
 
-The Mini App includes five views (rating, profile, settings, lobby, and table), 68×100 px hand cards with horizontal scrolling, image decode tracking and a text fallback, and spectator-safe controls. Dynamic player and chat text is inserted through DOM `textContent`/element APIs rather than `innerHTML`.
+The Mini App includes five views (rating, profile, settings, lobby, and table), 68×100 px hand cards with horizontal scrolling, image decode tracking and a text fallback, role-aware player/observer controls, a separate spectator chat, quick emoji reactions, and cosmetic-only table effects (curse, buff, lightning, phoenix). Cosmetic effects are ephemeral broadcasts and never mutate game state. Dynamic player and chat text is inserted through DOM `textContent`/element APIs rather than `innerHTML`.
+
+
+## Stage 9 — spectator social layer and table cosmetics
+
+Spectators of public rooms can write to an isolated spectator chat; player chat is delivered only to player sessions, and spectator chat only to spectator sessions. Both roles can send rate-limited room-wide emoji reactions. The table also supports rate-limited visual-only effects (curse, buff, lightning, phoenix), broadcast as transient events and never applied to the game engine. These live room messages and cosmetic events remain in memory and disappear when the process restarts; no additional paid database is required for this prototype.
