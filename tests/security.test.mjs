@@ -77,7 +77,7 @@ test('migrates old saved settings to emerald felt and persists table theme choic
       trumpPosition: 'left',
       soundEnabled: false,
       tableTheme: 'emerald',
-      cardSize: 'normal',
+      cardSize: 'large',
     });
     store.saveSettings('legacy', { tableTheme: 'light', cardSize: 'large' });
     store.saveSettings('legacy', { soundEnabled: true });
