@@ -41,7 +41,7 @@
 
     <section id="lobbyView" class="view" hidden>
       <h3 class="section-title">🃏 Столы ждут оптимистов</h3>
-      <div class="actions"><button id="refreshLobbyBtn" class="btn secondary" type="button" >Освежить столы</button><button id="createPublicRoomBtn" class="btn" type="button" >+ Открыть стол</button><button id="createAiRoomBtn" class="btn secondary" type="button">🤖 Тренировка с ИИ</button></div>
+      <div class="actions"><button id="refreshLobbyBtn" class="btn secondary" type="button">Освежить столы</button><button id="createPublicRoomBtn" class="btn" type="button">+ Открыть стол</button><button id="createAiRoomBtn" class="btn secondary" type="button">🤖 Тренировка с ИИ</button></div>
       <div id="lobbyList"></div>
     </section>
 
@@ -65,7 +65,7 @@
 
   <section id="startupError" class="overlay-error"><h2>OPTIMIST DURAK</h2><p id="startupMessage">Готовим колоду из 36 карт. Каждая на месте — удача уже рядом!</p></section>
   <nav id="bottomNav" class="bottom-nav" hidden>
-    <button class="nav-tab" data-tab="ratingView" type="button"><span class="ico">📊</span><span >Рейтинг</span></button>
+    <button class="nav-tab" data-tab="ratingView" type="button"><span class="ico">📊</span><span>Рейтинг</span></button>
     <button class="nav-tab" data-tab="profileView" type="button"><span class="ico">👤</span><span>Профиль</span></button>
     <button class="nav-tab" data-tab="settingsView" type="button"><span class="ico">⚙️</span><span>Настройки</span></button>
     <button class="nav-tab" data-tab="lobbyView" type="button"><span class="ico">🏠</span><span>Лобби</span></button>
@@ -324,7 +324,7 @@
         else if (uncoveredIndex >= 0 && !canBeatUncovered) { $('status').textContent = 'Не нашёлся ответ? Забирай карты и готовь реванш!'; statusBox.classList.add('alert-take'); }
         else $('status').textContent = 'Твой момент — отбивай красиво! 💪';
       } else if (state.activeThrowerId === authenticatedUserId) $('status').textContent = state.table.length ? 'Есть чем удивить? Подкидывай или жми «Пас»!' : 'Твой ход — начинай красиво! 🚀';
-      else $('status').textContent = `Ходит ${state.players.find((player) => player.id === state.activeThrowerId)?.username || 'соперник'}`;
+      else $('status').textContent = `Сейчас ходит ${state.players.find((player) => player.id === state.activeThrowerId)?.username || 'соперник'} — следи за красивым ходом!`;
 
       playersEl.replaceChildren();
       state.players.forEach((player) => {
