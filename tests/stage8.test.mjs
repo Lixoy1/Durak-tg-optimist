@@ -38,7 +38,7 @@ test('PersistentStore survives restart and preserves stats and settings', () => 
     assert.deepEqual(second.ensurePlayer('u1', 'Вася'), {
       userId: 'u1', username: 'Вася', games: 1, wins: 1, losses: 0, draws: 0, rating: 0.3,
     });
-    assert.deepEqual(second.getSettings('u1'), { userId: 'u1', trumpPosition: 'left', soundEnabled: false, tableTheme: 'emerald' });
+    assert.deepEqual(second.getSettings('u1'), { userId: 'u1', trumpPosition: 'left', soundEnabled: false, tableTheme: 'emerald', cardSize: 'normal' });
     second.close();
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -57,7 +57,7 @@ test('listPublicRooms exposes only public rooms and includes spectator counts', 
   assert.equal(listed[0].spectatorCount, 1);
 });
 
-test('spectators see no player hands and cannot send actions or chat', async () => {
+test('spectators see no player hands, can use shared chat, and cannot send game actions', async () => {
   const manager = new RoomManager(() => 10_000);
   const { roomId } = manager.createRoom('p1', 'Player1', 2, { isPublic: true });
   await manager.joinRoom(roomId, 'p2', 'Player2');
@@ -67,8 +67,9 @@ test('spectators see no player hands and cannot send actions or chat', async () 
   assert.equal(snapshot.spectatorCount, 1);
   for (const player of snapshot.state.players) assert.equal('hand' in player, false);
 
-  await assert.rejects(manager.sendChat(roomId, 'watcher1', 'I am watching'),
-    (error) => error instanceof RoomError && error.code === 'NOT_A_MEMBER');
+  const spectatorMessage = await manager.sendChat(roomId, 'watcher1', 'I am watching');
+  assert.equal(spectatorMessage.senderType, 'SPECTATOR');
+  assert.equal(manager.getSnapshot(roomId, 'p1').chatHistory.at(-1).text, 'I am watching');
   await assert.rejects(manager.dispatchAction(roomId, 'watcher1', { type: 'PASS', expectedVersion: snapshot.state.version }, 'spectator-command-1'),
     (error) => error instanceof RoomError && error.code === 'NOT_A_MEMBER');
   assert.throws(() => manager.getSnapshot(roomId, 'unknown'),
@@ -152,7 +153,9 @@ test('Mini App uses textContent rather than innerHTML for dynamic data and track
   assert.match(html, /decodedSet/);
   assert.match(html, /failedSet/);
   assert.match(html, /img\.decode\(\)/);
-  assert.match(html, /width:68px;height:100px/);
+  assert.match(html, /--card-width:68px;--card-height:100px/);
+  assert.match(html, /cardSizeSmallBtn/);
+  assert.match(html, /themeLightBtn/);
   for (const tab of ['ratingView', 'profileView', 'settingsView', 'lobbyView', 'gameView']) {
     assert.match(html, new RegExp(`id=\"${tab}\"`));
   }
@@ -205,7 +208,7 @@ test('authenticated HTTP API creates public rooms and persists user settings', a
   });
   assert.equal(settingsRes.status, 200);
   assert.deepEqual((await settingsRes.json()).settings, {
-    userId: '777', trumpPosition: 'left', soundEnabled: false, tableTheme: 'ruby',
+    userId: '777', trumpPosition: 'left', soundEnabled: false, tableTheme: 'ruby', cardSize: 'normal',
   });
 
   const bootstrap = await fetch(`${baseUrl}/api/bootstrap`, { headers });
