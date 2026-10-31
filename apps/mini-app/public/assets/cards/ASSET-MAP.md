@@ -9,6 +9,6 @@ The 36 card fronts below are mapped to the canonical game engine paths. The sour
 | Diamonds | 1000024579.png | 1000024589.png | 1000024590.png | 1000024591.png | 1000024593.png | 1000024571.png | 1000024564.png | 1000024566.png | 1000024573.png |
 | Hearts | 1000024580.png | 1000024594.png | 1000024598.png | 1000024595.png | 1000024596.png | 1000024572.png | 1000024563.png | 1000024567.png | 1000024574.png |
 
-`back.webp` uses `1000024560.png`, the OPTIMIST author card with joker, and is displayed separately as the deck back in the Mini App top bar.
+`back.svg` is the new default deck back: matte charcoal with restrained antique-gold engraving and a small OPTIMIST emblem. It is used in the top bar and on the draw pile. The original `back.webp` portrait artwork is retained as a legacy asset but is no longer the default card back.
 
 Two additional J artwork variants (`1000024600.png` and `1000024601.png`) are intentionally not assigned to the standard 36-card Durak deck; each rank/suit must occur exactly once.
