@@ -37,6 +37,6 @@ test('subdued matte-gold card back is installed and used by the Mini App', () =>
   assert.match(svg, /<svg/);
   assert.match(svg, /OPTIMIST/);
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
-  assert.match(html, /class="deck-back" src="\\/assets\\/cards\\/back\\.svg"/);
-  assert.match(html, /id="sideDeckBack" class="side-deck-back" src="\\/assets\\/cards\\/back\\.svg"/);
-});;
+  assert.match(html, /class="deck-back" src="\/assets\/cards\/back\.svg"/);
+  assert.match(html, /id="sideDeckBack" class="side-deck-back" src="\/assets\/cards\/back\.svg"/);
+});
