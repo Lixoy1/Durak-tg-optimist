@@ -155,7 +155,7 @@ export class PersistentStore {
   public getSettings(userId: string): UserSettings {
     this.assertOpen();
     const existing = this.settings.get(userId);
-    return existing ? { ...existing } : { userId, trumpPosition: 'right', soundEnabled: true, tableTheme: 'emerald', cardSize: 'normal' };
+    return existing ? { ...existing } : { userId, trumpPosition: 'right', soundEnabled: true, tableTheme: 'emerald', cardSize: 'large' };
   }
 
   public saveSettings(userId: string, patch: { trumpPosition?: 'left' | 'right'; soundEnabled?: boolean; tableTheme?: 'emerald' | 'ruby' | 'night' | 'light'; cardSize?: 'small' | 'normal' | 'large' }): UserSettings {
