@@ -237,6 +237,15 @@ test('WebSocket protocol validates spectator chat, reactions and cosmetic effect
   assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_TABLE_EFFECT', effect: 'phoenix' })), {
     type: 'SEND_TABLE_EFFECT', effect: 'phoenix',
   });
+  assert.deepEqual(parseClientMessage(JSON.stringify({
+    type: 'GAME_ACTION',
+    commandId: 'transfer-command-01',
+    action: { type: 'TRANSFER', cardId: 'hearts_6', expectedVersion: 1 },
+  })), {
+    type: 'GAME_ACTION',
+    commandId: 'transfer-command-01',
+    action: { type: 'TRANSFER', cardId: 'hearts_6', expectedVersion: 1 },
+  });
   assert.throws(() => parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: '💸' })), (e) => e instanceof ProtocolError && e.code === 'INVALID_REACTION');
   assert.throws(() => parseClientMessage(JSON.stringify({ type: 'SEND_TABLE_EFFECT', effect: 'pay_to_win' })), (e) => e instanceof ProtocolError && e.code === 'INVALID_TABLE_EFFECT');
 });
