@@ -405,7 +405,7 @@ export function createOptimistBackend(options: BackendOptions) {
         'content-type': contentType[extension] ?? 'application/octet-stream',
         'x-content-type-options': 'nosniff',
         'cache-control': extension === '.html' ? 'no-cache' : 'public, max-age=86400',
-        'content-security-policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://telegram.org; connect-src 'self' ws: wss:; frame-ancestors https://web.telegram.org https://*.telegram.org",
+        'content-security-policy': "default-src 'self'; img-src 'self' data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://telegram.org; connect-src 'self' ws: wss:; frame-ancestors https://web.telegram.org https://*.telegram.org",
       });
       res.end(body);
     } catch (error) {
