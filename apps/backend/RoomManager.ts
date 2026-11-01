@@ -203,7 +203,6 @@ export class RoomManager {
       queue: Promise.resolve(),
       idempotency: new Map(),
       lastChatAt: new Map(),
-      lastReactionAt: new Map(),
       lastEffectAt: new Map(),
     };
     this.rooms.set(roomId, room);
