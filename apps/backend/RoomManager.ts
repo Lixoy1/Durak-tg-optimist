@@ -27,7 +27,11 @@ export type RoomReaction = {
   roomId: string;
   senderId: string;
   senderName: string;
-  reaction: '🔥' | '😎' | '😂' | '💀' | '👑' | '🤡' | '👏' | '🙈';
+  reaction:
+    | '🔥' | '😎' | '😂' | '💀' | '👑' | '🤡' | '👏' | '🙈'
+    | 'optimist-approved' | 'queen-cute' | 'queen-good-luck' | 'poison-drop'
+    | 'detective-no-cheating' | 'spade-queen-look' | 'club-king-epaulettes'
+    | 'club-king-disrespect' | 'duo-leave';
   timestamp: number;
 };
 
@@ -457,7 +461,12 @@ export class RoomManager {
   public async sendReaction(roomId: string, senderId: string, reaction: RoomReaction['reaction']): Promise<RoomReaction> {
     return this.withLock(roomId, (room) => {
       this.assertCanView(room, senderId);
-      const allowed = ['🔥', '😎', '😂', '💀', '👑', '🤡', '👏', '🙈'];
+      const allowed = [
+        '🔥', '😎', '😂', '💀', '👑', '🤡', '👏', '🙈',
+        'optimist-approved', 'queen-cute', 'queen-good-luck', 'poison-drop',
+        'detective-no-cheating', 'spade-queen-look', 'club-king-epaulettes',
+        'club-king-disrespect', 'duo-leave',
+      ];
       if (!allowed.includes(reaction)) throw new RoomError('INVALID_REACTION', 'Такая реакция не входит в колоду эмоций.');
       const now = this.now();
       const last = room.lastReactionAt.get(senderId) ?? 0;
