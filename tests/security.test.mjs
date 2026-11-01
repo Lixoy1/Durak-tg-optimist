@@ -164,6 +164,10 @@ test('spectators can react and trigger cosmetic effects without mutating game st
   await assert.rejects(manager.sendReaction(roomId, 'observer', '😎'), (e) => e instanceof RoomError && e.code === 'RATE_LIMIT');
 
   now += 4_001;
+  const sticker = await manager.sendReaction(roomId, 'observer', 'club-king-disrespect');
+  assert.equal(sticker.reaction, 'club-king-disrespect');
+  assert.equal(sticker.senderName, 'Зритель');
+  now += 4_001;
   const effect = await manager.sendTableEffect(roomId, 'observer', 'curse');
   assert.equal(effect.effect, 'curse');
   assert.equal(effect.senderName, 'Зритель');
@@ -233,6 +237,9 @@ test('WebSocket protocol validates spectator chat, reactions and cosmetic effect
   });
   assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: '👑' })), {
     type: 'SEND_REACTION', reaction: '👑',
+  });
+  assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: 'club-king-disrespect' })), {
+    type: 'SEND_REACTION', reaction: 'club-king-disrespect',
   });
   assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_TABLE_EFFECT', effect: 'phoenix' })), {
     type: 'SEND_TABLE_EFFECT', effect: 'phoenix',

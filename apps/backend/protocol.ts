@@ -6,7 +6,11 @@ export type ClientMessage =
   | { type: 'GAME_ACTION'; commandId: string; action: GameActionInput }
   | { type: 'SEND_CHAT'; text: string }
   | { type: 'SEND_SPECTATOR_CHAT'; text: string }
-  | { type: 'SEND_REACTION'; reaction: '🔥' | '😎' | '😂' | '💀' | '👑' | '🤡' | '👏' | '🙈' }
+  | { type: 'SEND_REACTION'; reaction:
+      | '🔥' | '😎' | '😂' | '💀' | '👑' | '🤡' | '👏' | '🙈'
+      | 'optimist-approved' | 'queen-cute' | 'queen-good-luck' | 'poison-drop'
+      | 'detective-no-cheating' | 'spade-queen-look' | 'club-king-epaulettes'
+      | 'club-king-disrespect' | 'duo-leave' }
   | { type: 'SEND_TABLE_EFFECT'; effect: 'curse' | 'buff' | 'lightning' | 'phoenix' };
 
 export class ProtocolError extends Error {
@@ -47,7 +51,12 @@ export function parseClientMessage(raw: string | Uint8Array): ClientMessage {
     return { type: msg.type, text: msg.text };
   }
   if (msg.type === 'SEND_REACTION') {
-    const allowed = ['🔥', '😎', '😂', '💀', '👑', '🤡', '👏', '🙈'] as const;
+    const allowed = [
+      '🔥', '😎', '😂', '💀', '👑', '🤡', '👏', '🙈',
+      'optimist-approved', 'queen-cute', 'queen-good-luck', 'poison-drop',
+      'detective-no-cheating', 'spade-queen-look', 'club-king-epaulettes',
+      'club-king-disrespect', 'duo-leave',
+    ] as const;
     if (typeof msg.reaction !== 'string' || !allowed.includes(msg.reaction as typeof allowed[number])) {
       throw new ProtocolError('INVALID_REACTION', 'Недопустимая реакция.');
     }
