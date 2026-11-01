@@ -23,18 +23,6 @@ export interface ChatMessage {
   voice?: VoiceMessageMetadata;
 }
 
-export type RoomReaction = {
-  roomId: string;
-  senderId: string;
-  senderName: string;
-  reaction:
-    | '🔥' | '😎' | '😂' | '💀' | '👑' | '🤡' | '👏' | '🙈'
-    | 'optimist-approved' | 'queen-cute' | 'queen-good-luck' | 'poison-drop'
-    | 'detective-no-cheating' | 'spade-queen-look' | 'club-king-epaulettes'
-    | 'club-king-disrespect' | 'duo-leave';
-  timestamp: number;
-};
-
 export type TableEffect = {
   roomId: string;
   senderId: string;
@@ -121,7 +109,6 @@ interface RoomRecord {
   queue: Promise<void>;
   idempotency: Map<string, { fingerprint: string; resultVersion: number }>;
   lastChatAt: Map<string, number>;
-  lastReactionAt: Map<string, number>;
   lastEffectAt: Map<string, number>;
 }
 
@@ -186,7 +173,6 @@ export class RoomManager {
       queue: Promise.resolve(),
       idempotency: new Map(),
       lastChatAt: new Map(),
-      lastReactionAt: new Map(),
       lastEffectAt: new Map(),
     };
     this.rooms.set(roomId, room);
@@ -456,25 +442,6 @@ export class RoomManager {
   /** Backwards-compatible alias: observers now use the same room chat as players. */
   public async sendSpectatorChat(roomId: string, spectatorId: string, text: string): Promise<ChatMessage> {
     return this.sendChat(roomId, spectatorId, text);
-  }
-
-  public async sendReaction(roomId: string, senderId: string, reaction: RoomReaction['reaction']): Promise<RoomReaction> {
-    return this.withLock(roomId, (room) => {
-      this.assertCanView(room, senderId);
-      const allowed = [
-        '🔥', '😎', '😂', '💀', '👑', '🤡', '👏', '🙈',
-        'optimist-approved', 'queen-cute', 'queen-good-luck', 'poison-drop',
-        'detective-no-cheating', 'spade-queen-look', 'club-king-epaulettes',
-        'club-king-disrespect', 'duo-leave',
-      ];
-      if (!allowed.includes(reaction)) throw new RoomError('INVALID_REACTION', 'Такая реакция не входит в колоду эмоций.');
-      const now = this.now();
-      const last = room.lastReactionAt.get(senderId) ?? 0;
-      if (now - last < 650) throw new RoomError('RATE_LIMIT', 'Эмоции эмоциями, но не спамим 😎');
-      room.lastReactionAt.set(senderId, now);
-      const player = room.engine.state.players.find((entry) => entry.id === senderId);
-      return { roomId, senderId, senderName: player?.username ?? room.spectatorNames.get(senderId) ?? 'Зритель', reaction, timestamp: now };
-    });
   }
 
   public async sendTableEffect(roomId: string, senderId: string, effect: TableEffect['effect']): Promise<TableEffect> {
