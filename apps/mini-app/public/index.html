@@ -1130,7 +1130,8 @@
       setTimeout(() => item.remove(), 2_650);
     }
 
-    const effects = {
+    function showCosmeticEffect(payload) {
+      const effects = {
         curse: { icon: '😈', title: 'СГЛАЗИТЬ СОПЕРНИКА', tagline: 'Чтоб тебе пики в тапки!', className: 'effect-curse' },
         buff: { icon: '🍀', title: 'ПРИЗВАТЬ УДАЧУ', tagline: 'Сегодня карты сами идут в руки!', className: 'effect-buff' },
         lightning: { icon: '⚡', title: 'УДАРИТЬ МОЛНИЕЙ', tagline: 'РАЗРАЗИ МЕНЯ ГРОМ!', className: 'effect-lightning' },
