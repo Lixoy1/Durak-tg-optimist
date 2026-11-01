@@ -261,7 +261,7 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
         `🃏 Карты на руках! Первый ход за <b>${escapeHtml(firstPlayer)}</b> — покажи красивую игру!`,
         '',
         'Игроки нажимают «Войти в общую партию». Зрители — «На трибуну»: у них отдельный чат и реакции, но нет доступа к картам игроков.',
-      ].join('\\n'), {
+      ].join('\n'), {
         parse_mode: 'HTML',
         reply_markup: new InlineKeyboard()
           .url('🃏 Войти в общую партию', url)
@@ -406,11 +406,17 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
 
     if (ctx.chat.type === 'private') {
       const keyboard = new InlineKeyboard()
-        .text('2 места', 'create_2').text('3 места', 'create_3').row()
-        .text('4 места', 'create_4').text('5 мест', 'create_5').row()
-        .text('6 мест', 'create_6');
+        .text('♠️ СОЗДАТЬ ЛИЧНЫЙ СТОЛ', 'choose_table')
+        .row()
+        .text('👥 ИГРАТЬ В ГРУППЕ', 'group_play_help');
       await ctx.reply(
-        '♠️ <b>OPTIMIST DURAK</b> ♦️\n\n36 авторских карт. Золотая колода. Чёрное сукно. Здесь проигрыш — лишь повод вернуться за реваншем. 😎\n\n🎲 <b>Личный стол:</b> выбери вместимость от 2 до 6 мест. Бот откроет отдельную комнату, а ты пригласишь друзей.\n\n👥 <b>Игра в группе:</b> добавь бота в групповой чат и напиши <code>/durak</code> — соберём общий стол прямо здесь.\n\nСколько мест оставим за твоим личным столом?',
+        '<b>♠️ OPTIMIST DURAK ♦️</b>\n' +
+        '<b>ТВОЙ СТОЛ. ТВОИ ПРАВИЛА. ТВОЯ ИГРА.</b>\n\n' +
+        '🃏 <b>36 авторских карт</b> · золотая колода · чёрное сукно.\n' +
+        '👑 Собирай друзей, забирай победы и оставляй своё имя в летописи стола.\n' +
+        '🔥 Здесь даже проигрыш — только повод красиво вернуться за реваншем.\n\n' +
+        '<b>Как будем играть?</b>\n' +
+        'Создай личную комнату и пригласи друзей или собери общий стол прямо в групповом чате.',
         { parse_mode: 'HTML', reply_markup: keyboard },
       );
       return;
@@ -432,6 +438,60 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
     await ctx.reply('Стол OPTIMIST можно открыть в личном чате с ботом или прямо в группе. Выбирай компанию и начинай!');
   });
 
+  bot.callbackQuery('choose_table', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const keyboard = new InlineKeyboard()
+      .text('⚔️ ДУЭЛЬ · 2', 'create_2')
+      .text('🔥 ТРИО · 3', 'create_3')
+      .row()
+      .text('♠️ КЛАССИКА · 4', 'create_4')
+      .text('🎲 КОМПАНИЯ · 5', 'create_5')
+      .row()
+      .text('👑 ПОЛНЫЙ СТОЛ · 6', 'create_6')
+      .row()
+      .text('↩️ Назад', 'main_menu');
+    await ctx.editMessageText(
+      '<b>♠️ СОБИРАЕМ СТОЛ OPTIMIST</b>\n\n' +
+      'Сколько игроков будет в этой партии? Выбирай формат — друзей можно пригласить следующим шагом.\n\n' +
+      '⚔️ <b>Дуэль</b> — один на один.\n' +
+      '🔥 <b>Трио</b> — трое за одним столом.\n' +
+      '♠️ <b>Классика</b> — четверо игроков.\n' +
+      '🎲 <b>Компания</b> — пятеро за столом.\n' +
+      '👑 <b>Полный стол</b> — максимум, шестеро.',
+      { parse_mode: 'HTML', reply_markup: keyboard },
+    );
+  });
+
+  bot.callbackQuery('group_play_help', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const username = await getBotUsername();
+    await ctx.editMessageText(
+      '<b>👥 ОБЩИЙ СТОЛ OPTIMIST</b>\n\n' +
+      'Хочешь играть прямо в компании? Добавь <b>@' + escapeHtml(username) + '</b> в групповой чат и отправь команду <code>/durak</code>.\n\n' +
+      'Бот откроет общий сбор: друзья нажмут «За стол!», а капитан запустит партию. Если соберётся полный состав, игра начнётся автоматически.\n\n' +
+      '<i>Личные карты каждого игрока останутся только у него.</i>',
+      { parse_mode: 'HTML', reply_markup: new InlineKeyboard().text('↩️ В меню', 'main_menu') },
+    );
+  });
+
+  bot.callbackQuery('main_menu', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const keyboard = new InlineKeyboard()
+      .text('♠️ СОЗДАТЬ ЛИЧНЫЙ СТОЛ', 'choose_table')
+      .row()
+      .text('👥 ИГРАТЬ В ГРУППЕ', 'group_play_help');
+    await ctx.editMessageText(
+      '<b>♠️ OPTIMIST DURAK ♦️</b>\n' +
+      '<b>ТВОЙ СТОЛ. ТВОИ ПРАВИЛА. ТВОЯ ИГРА.</b>\n\n' +
+      '🃏 <b>36 авторских карт</b> · золотая колода · чёрное сукно.\n' +
+      '👑 Собирай друзей, забирай победы и оставляй своё имя в летописи стола.\n' +
+      '🔥 Здесь даже проигрыш — только повод красиво вернуться за реваншем.\n\n' +
+      '<b>Как будем играть?</b>\n' +
+      'Создай личную комнату и пригласи друзей или собери общий стол прямо в групповом чате.',
+      { parse_mode: 'HTML', reply_markup: keyboard },
+    );
+  });
+
   for (const playerCount of [2, 3, 4, 5, 6]) {
     bot.callbackQuery(`create_${playerCount}`, async (ctx) => {
       await ctx.answerCallbackQuery();
@@ -446,10 +506,14 @@ export function createTelegramBot(options: TelegramBotOptions): Bot {
         .row()
         .url('📨 Пригласить друзей', shareUrl);
       await ctx.editMessageText(
-        `Личный стол OPTIMIST DURAK готов! 🚀\n\nКомната: ${roomId}\nМест за столом: ${playerCount}\n\nЭто отдельная личная комната — она не подключает тебя к партии из группового чата. Пригласи друга по ссылке, чтобы он тоже вошёл за этот стол. Когда вас будет минимум двое, капитан сможет начать игру.\n\nДля продолжения уже начатой партии вернись в групповой чат и нажми кнопку «Открыть OPTIMIST DURAK» под сообщением о старте.`,
-        { reply_markup: keyboard },
-      );
-    });
+        `<b>♠️ ТВОЙ СТОЛ СОБРАН</b>\n\n` +
+        `<b>Формат:</b> ${playerCount === 2 ? '⚔️ Дуэль' : playerCount === 3 ? '🔥 Трио' : playerCount === 4 ? '♠️ Классика' : playerCount === 5 ? '🎲 Компания' : '👑 Полный стол'}\n` +
+        `<b>Комната:</b> <code>${roomId}</code>\n` +
+        `<b>Мест:</b> ${playerCount}\n\n` +
+        `Ты — капитан этой комнаты. Открой стол и отправь приглашение друзьям. Как только соберётся минимум два игрока, можно раздавать карты.\n\n` +
+        `<i>Пусть победит не удача — пусть победит OPTIMISM.</i>`,
+        { parse_mode: 'HTML', reply_markup: keyboard },
+      );    });
   }
 
   bot.callbackQuery(/^join_([a-f0-9]{16})$/, async (ctx) => {
