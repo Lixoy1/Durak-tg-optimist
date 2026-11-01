@@ -36,33 +36,14 @@
         <div id="tableMoments" class="table-moments" aria-live="polite"></div>
         <div class="side-deck-widget"><img id="sideTrumpImg" class="side-trump-card" src="/assets/cards/back.webp" alt="Козырь" hidden /><img id="sideDeckBack" class="side-deck-back" src="/assets/cards/back.svg" alt="Колода" /><span id="sideDeckBadge" class="side-deck-count">36</span></div>
       </section>
-      <section class="table-tools" aria-label="Реакции и эффекты стола">
-        <div class="reaction-dock">
-          <button id="reactionToggle" class="reaction-toggle" type="button" aria-expanded="false" aria-controls="reactionPicker">
-            <span class="reaction-toggle-icon">✦</span><span>Реакции</span><b>9</b>
-          </button>
-          <div id="reactionPicker" class="reaction-picker" hidden>
-            <div class="reaction-picker-head"><strong>РЕАКЦИИ СТОЛА</strong><button id="closeReactionPicker" type="button" aria-label="Закрыть">×</button></div>
-            <div class="reaction-grid">
-              <button class="reaction-option" type="button" data-reaction="optimist-approved" title="Одобрено"><img src="/assets/reactions/optimist-approved.webp" alt="" loading="eager" decoding="async" fetchpriority="high"><span>Одобрено</span></button>
-              <button class="reaction-option" type="button" data-reaction="queen-cute" title="Как мило!"><img src="/assets/reactions/queen-cute.webp" alt="" loading="lazy"><span>Как мило!</span></button>
-              <button class="reaction-option" type="button" data-reaction="queen-good-luck" title="Удачи!"><img src="/assets/reactions/queen-good-luck.webp" alt="" loading="lazy"><span>Удачи!</span></button>
-              <button class="reaction-option" type="button" data-reaction="poison-drop" title="Капельку яда"><img src="/assets/reactions/poison-drop.webp" alt="" loading="lazy"><span>Капельку яда</span></button>
-              <button class="reaction-option" type="button" data-reaction="detective-no-cheating" title="Не мухлюешь?"><img src="/assets/reactions/detective-no-cheating.webp" alt="" loading="lazy"><span>Не мухлюешь?</span></button>
-              <button class="reaction-option" type="button" data-reaction="spade-queen-look" title="Смотри в глаза!"><img src="/assets/reactions/spade-queen-look.webp" alt="" loading="lazy"><span>Смотри в глаза!</span></button>
-              <button class="reaction-option" type="button" data-reaction="club-king-epaulettes" title="Погоны готовы!"><img src="/assets/reactions/club-king-epaulettes.webp" alt="" loading="lazy"><span>Погоны готовы!</span></button>
-              <button class="reaction-option" type="button" data-reaction="club-king-disrespect" title="Без уважения!"><img src="/assets/reactions/club-king-disrespect.webp" alt="" loading="lazy"><span>Без уважения!</span></button>
-              <button class="reaction-option" type="button" data-reaction="duo-leave" title="Уходим!"><img src="/assets/reactions/duo-leave.webp" alt="" loading="lazy"><span>Уходим!</span></button>
-            </div>
-          </div>
-        </div>
+      <section class="table-tools" aria-label="Эффекты стола">
         <div class="tool-row" aria-label="Косметические эффекты">
           <button class="effect-chip" type="button" data-effect="curse" title="Сглазить соперника">😈 Сглазить</button>
           <button class="effect-chip" type="button" data-effect="buff" title="Призвать удачу">🍀 Призвать удачу</button>
           <button class="effect-chip" type="button" data-effect="lightning" title="Ударить молнией">⚡ Ударить молнией</button>
           <button class="effect-chip" type="button" data-effect="phoenix" title="Призвать феникса">🔥 Призвать феникса</button>
         </div>
-        <div class="tool-note">Реакции видят все за столом. Эффекты не меняют правила игры.</div>
+        <div class="tool-note">Эффекты не меняют правила игры.</div>
       </section>
       <div id="trump" class="trump-pill">Козырь: —</div>
       <section id="handArea" class="hand-area"><div id="handLabel" class="hand-label">Твои карты — твой характер</div><div id="hand" class="hand"><div id="handTrack" class="hand-track"></div></div></section>
@@ -390,8 +371,6 @@
             unreadBadge.style.display = 'inline-block';
             unreadBadge.textContent = unread > 9 ? '9+' : String(unread);
           }
-        } else if (packet.event === 'TABLE_REACTION') {
-          showTableReaction(packet.payload);
         } else if (packet.event === 'TABLE_EFFECT') {
           showCosmeticEffect(packet.payload);
         } else if (packet.event === 'ERROR') {
@@ -1151,40 +1130,7 @@
       setTimeout(() => item.remove(), 2_650);
     }
 
-    const stickerReactionAssets = {
-      'optimist-approved': { title: 'ОДОБРЕНО!', src: '/assets/reactions/optimist-approved.webp' },
-      'queen-cute': { title: 'КАК МИЛО!', src: '/assets/reactions/queen-cute.webp' },
-      'queen-good-luck': { title: 'УДАЧИ!', src: '/assets/reactions/queen-good-luck.webp' },
-      'poison-drop': { title: 'КАПЕЛЬКУ ЯДА', src: '/assets/reactions/poison-drop.webp' },
-      'detective-no-cheating': { title: 'НЕ МУХЛЮЕШЬ?', src: '/assets/reactions/detective-no-cheating.webp' },
-      'spade-queen-look': { title: 'СМОТРИ В ГЛАЗА!', src: '/assets/reactions/spade-queen-look.webp' },
-      'club-king-epaulettes': { title: 'ПОГОНЫ ГОТОВЫ!', src: '/assets/reactions/club-king-epaulettes.webp' },
-      'club-king-disrespect': { title: 'БЕЗ УВАЖЕНИЯ!', src: '/assets/reactions/club-king-disrespect.webp' },
-      'duo-leave': { title: 'УХОДИМ!', src: '/assets/reactions/duo-leave.webp' },
-    };
-
-    function showTableReaction(payload) {
-      const sticker = stickerReactionAssets[payload.reaction];
-      if (!sticker) {
-        showTableMoment('reaction', payload.reaction, payload.senderName || 'Зритель', '');
-        return;
-      }
-      const item = document.createElement('div');
-      item.className = 'moment-reaction moment-sticker';
-      const image = document.createElement('img');
-      image.src = sticker.src;
-      image.alt = sticker.title;
-      image.draggable = false;
-      const byline = document.createElement('small');
-      byline.textContent = payload.senderName || 'Зритель';
-      item.append(image, byline);
-      tableMoments.append(item);
-      while (tableMoments.children.length > 4) tableMoments.firstElementChild?.remove();
-      setTimeout(() => item.remove(), 2_850);
-    }
-
-    function showCosmeticEffect(payload) {
-      const effects = {
+    const effects = {
         curse: { icon: '😈', title: 'СГЛАЗИТЬ СОПЕРНИКА', tagline: 'Чтоб тебе пики в тапки!', className: 'effect-curse' },
         buff: { icon: '🍀', title: 'ПРИЗВАТЬ УДАЧУ', tagline: 'Сегодня карты сами идут в руки!', className: 'effect-buff' },
         lightning: { icon: '⚡', title: 'УДАРИТЬ МОЛНИЕЙ', tagline: 'РАЗРАЗИ МЕНЯ ГРОМ!', className: 'effect-lightning' },
@@ -1194,24 +1140,6 @@
       showTableMoment('effect', effect.icon, effect.title, payload.senderName || 'Игрок', effect.className, effect.tagline);
     }
 
-    const reactionPicker = $('reactionPicker');
-    const reactionToggle = $('reactionToggle');
-    const closeReactionPicker = $('closeReactionPicker');
-    function setReactionPickerOpen(open) {
-      reactionPicker.hidden = !open;
-      reactionToggle.setAttribute('aria-expanded', String(open));
-    }
-    reactionToggle.addEventListener('click', () => setReactionPickerOpen(reactionPicker.hidden));
-    closeReactionPicker.addEventListener('click', () => setReactionPickerOpen(false));
-    document.querySelectorAll('.reaction-option').forEach((button) => button.addEventListener('click', () => {
-      if (!snapshot || socket?.readyState !== WebSocket.OPEN) {
-        showToast('Сначала подключись к игровому столу — реакции уже ждут!');
-        setReactionPickerOpen(false);
-        return;
-      }
-      socket.send(JSON.stringify({ type: 'SEND_REACTION', reaction: button.dataset.reaction }));
-      setReactionPickerOpen(false);
-    }));
     document.querySelectorAll('.effect-chip').forEach((button) => button.addEventListener('click', () => {
       if (!snapshot || snapshot.state.phase !== 'PLAYING' || socket?.readyState !== WebSocket.OPEN) return;
       socket.send(JSON.stringify({ type: 'SEND_TABLE_EFFECT', effect: button.dataset.effect }));

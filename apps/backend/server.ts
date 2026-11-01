@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
-import { RoomManager, RoomError, type ChatMessage, type RoomReaction, type TableEffect } from './RoomManager.ts';
+import { RoomManager, RoomError, type ChatMessage, type TableEffect } from './RoomManager.ts';
 import { PersistentStore } from './storage.ts';
 import { verifyTelegramInitData, AuthError } from './auth.ts';
 import { parseClientMessage, ProtocolError, type ClientMessage } from './protocol.ts';
@@ -455,10 +455,6 @@ export function createOptimistBackend(options: BackendOptions) {
     }
   }
 
-  function broadcastRoomMoment(roomId: string, event: 'TABLE_REACTION' | 'TABLE_EFFECT', payload: RoomReaction | TableEffect): void {
-    for (const ws of roomSockets.get(roomId) ?? []) sendJson(ws, { event, payload });
-  }
-
   async function handleAuthenticatedMessage(ws: WebSocket, session: Session, msg: ClientMessage): Promise<void> {
     if (!session.userId || !session.roomId) {
       if (msg.type !== 'AUTH') throw new ProtocolError('AUTH_REQUIRED', 'Сначала авторизуйся через Telegram.');
@@ -519,14 +515,9 @@ export function createOptimistBackend(options: BackendOptions) {
         broadcastChat(roomId, message);
         return;
       }
-      case 'SEND_REACTION': {
-        const reaction = await rooms.sendReaction(roomId, playerId, msg.reaction);
-        broadcastRoomMoment(roomId, 'TABLE_REACTION', reaction);
-        return;
-      }
       case 'SEND_TABLE_EFFECT': {
         const effect = await rooms.sendTableEffect(roomId, playerId, msg.effect);
-        broadcastRoomMoment(roomId, 'TABLE_EFFECT', effect);
+        for (const client of roomSockets.get(roomId) ?? []) sendJson(client, { event: 'TABLE_EFFECT', payload: effect });
         return;
       }
       default: {

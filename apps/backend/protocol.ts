@@ -6,11 +6,6 @@ export type ClientMessage =
   | { type: 'GAME_ACTION'; commandId: string; action: GameActionInput }
   | { type: 'SEND_CHAT'; text: string }
   | { type: 'SEND_SPECTATOR_CHAT'; text: string }
-  | { type: 'SEND_REACTION'; reaction:
-      | '🔥' | '😎' | '😂' | '💀' | '👑' | '🤡' | '👏' | '🙈'
-      | 'optimist-approved' | 'queen-cute' | 'queen-good-luck' | 'poison-drop'
-      | 'detective-no-cheating' | 'spade-queen-look' | 'club-king-epaulettes'
-      | 'club-king-disrespect' | 'duo-leave' }
   | { type: 'SEND_TABLE_EFFECT'; effect: 'curse' | 'buff' | 'lightning' | 'phoenix' };
 
 export class ProtocolError extends Error {
@@ -49,18 +44,6 @@ export function parseClientMessage(raw: string | Uint8Array): ClientMessage {
   if (msg.type === 'SEND_CHAT' || msg.type === 'SEND_SPECTATOR_CHAT') {
     if (typeof msg.text !== 'string' || msg.text.length > 200) throw new ProtocolError('INVALID_CHAT', 'Сообщение должно содержать не более 200 символов.');
     return { type: msg.type, text: msg.text };
-  }
-  if (msg.type === 'SEND_REACTION') {
-    const allowed = [
-      '🔥', '😎', '😂', '💀', '👑', '🤡', '👏', '🙈',
-      'optimist-approved', 'queen-cute', 'queen-good-luck', 'poison-drop',
-      'detective-no-cheating', 'spade-queen-look', 'club-king-epaulettes',
-      'club-king-disrespect', 'duo-leave',
-    ] as const;
-    if (typeof msg.reaction !== 'string' || !allowed.includes(msg.reaction as typeof allowed[number])) {
-      throw new ProtocolError('INVALID_REACTION', 'Недопустимая реакция.');
-    }
-    return { type: 'SEND_REACTION', reaction: msg.reaction as typeof allowed[number] };
   }
   if (msg.type === 'SEND_TABLE_EFFECT') {
     const allowed = ['curse', 'buff', 'lightning', 'phoenix'] as const;

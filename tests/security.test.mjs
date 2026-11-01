@@ -149,7 +149,7 @@ test('players and spectators share one chat history and can all write to it', as
   await assert.rejects(manager.sendChat(roomId, 'outsider', 'Не участник'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
 });
 
-test('spectators can react and trigger cosmetic effects without mutating game state', async () => {
+test('spectators can trigger cosmetic effects without mutating game state', async () => {
   let now = 20_000;
   const manager = new RoomManager(() => now);
   const { roomId } = manager.createRoom('owner', 'Owner', 2, { isPublic: true });
@@ -158,22 +158,12 @@ test('spectators can react and trigger cosmetic effects without mutating game st
   await manager.startGame(roomId, 'owner');
   const before = structuredClone(manager.getRoom(roomId).state);
 
-  const reaction = await manager.sendReaction(roomId, 'observer', '🔥');
-  assert.equal(reaction.reaction, '🔥');
-  assert.equal(reaction.senderName, 'Зритель');
-  await assert.rejects(manager.sendReaction(roomId, 'observer', '😎'), (e) => e instanceof RoomError && e.code === 'RATE_LIMIT');
-
-  now += 4_001;
-  const sticker = await manager.sendReaction(roomId, 'observer', 'club-king-disrespect');
-  assert.equal(sticker.reaction, 'club-king-disrespect');
-  assert.equal(sticker.senderName, 'Зритель');
   now += 4_001;
   const effect = await manager.sendTableEffect(roomId, 'observer', 'curse');
   assert.equal(effect.effect, 'curse');
   assert.equal(effect.senderName, 'Зритель');
   assert.deepEqual(manager.getRoom(roomId).state, before, 'cosmetic effects must never change game rules or state');
   await assert.rejects(manager.sendTableEffect(roomId, 'observer', 'buff'), (e) => e instanceof RoomError && e.code === 'RATE_LIMIT');
-  await assert.rejects(manager.sendReaction(roomId, 'outsider', '🔥'), (e) => e instanceof RoomError && e.code === 'NOT_A_MEMBER');
 });
 
 test('room serializes concurrent actions and returns only the viewer hand', async () => {
@@ -231,15 +221,9 @@ test('chat enforces membership, length, rate limit and a 50-message history', as
 
 import { parseClientMessage, ProtocolError } from '../apps/backend/protocol.ts';
 
-test('WebSocket protocol validates spectator chat, reactions and cosmetic effects', () => {
+test('WebSocket protocol validates spectator chat and cosmetic effects', () => {
   assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_SPECTATOR_CHAT', text: 'Трибуна на связи!' })), {
     type: 'SEND_SPECTATOR_CHAT', text: 'Трибуна на связи!',
-  });
-  assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: '👑' })), {
-    type: 'SEND_REACTION', reaction: '👑',
-  });
-  assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: 'club-king-disrespect' })), {
-    type: 'SEND_REACTION', reaction: 'club-king-disrespect',
   });
   assert.deepEqual(parseClientMessage(JSON.stringify({ type: 'SEND_TABLE_EFFECT', effect: 'phoenix' })), {
     type: 'SEND_TABLE_EFFECT', effect: 'phoenix',
@@ -253,7 +237,7 @@ test('WebSocket protocol validates spectator chat, reactions and cosmetic effect
     commandId: 'transfer-command-01',
     action: { type: 'TRANSFER', cardId: 'hearts_6', expectedVersion: 1 },
   });
-  assert.throws(() => parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: '💸' })), (e) => e instanceof ProtocolError && e.code === 'INVALID_REACTION');
+  assert.throws(() => parseClientMessage(JSON.stringify({ type: 'SEND_REACTION', reaction: '👑' })), (e) => e instanceof ProtocolError && e.code === 'UNKNOWN_MESSAGE');
   assert.throws(() => parseClientMessage(JSON.stringify({ type: 'SEND_TABLE_EFFECT', effect: 'pay_to_win' })), (e) => e instanceof ProtocolError && e.code === 'INVALID_TABLE_EFFECT');
 });
 
